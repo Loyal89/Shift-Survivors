@@ -190,6 +190,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
 .lbsend .row{justify-content:flex-start}
 #lbName{font:inherit;font-size:24px;background:#07061a;color:var(--ink);border:2px solid var(--line);padding:6px 10px;width:min(240px,100%);min-height:48px;box-sizing:border-box}
 .btn:disabled{opacity:.55;cursor:default}
+.ncenter{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.ncenter .sub{margin:0}
+.bigscore{font-family:var(--px);font-size:clamp(30px,6vw,48px);color:var(--gold);text-shadow:4px 4px 0 #000;font-variant-numeric:tabular-nums}
+.nmform{display:flex;flex-direction:column;gap:10px;background:#100d2c;border:3px solid var(--pink);padding:14px 16px;box-shadow:0 0 18px rgba(255,62,165,.25)}
+.nmform label{font-size:24px;color:var(--pink);letter-spacing:.06em;text-transform:uppercase}
+.nmform .row{justify-content:flex-start;flex-wrap:nowrap}
+#nmName{font:inherit;font-size:28px;background:#07061a;color:var(--ink);border:2px solid var(--line);padding:6px 12px;flex:1 1 auto;min-width:0;min-height:52px;box-sizing:border-box}
+.lbrow.you{border-color:var(--pink);background:#2a0f2e}.lbrow.you .rk,.lbrow.you .nm{color:var(--pink)}
+@media (max-width:520px){.nmform .row{flex-wrap:wrap}.nmform .btn{flex:1 1 100%}}
 .bwrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:clamp(20px,4vw,64px);width:min(1600px,100%);align-items:center;margin:auto}
 .bleft{display:flex;flex-direction:column;gap:clamp(10px,1.6vh,18px);background:var(--panel);border:3px solid var(--line);box-shadow:0 0 0 3px #05040f,0 0 34px rgba(45,226,230,.18);padding:clamp(16px,2.4vw,34px);min-width:0}
 .bleft .logo{align-items:flex-start;gap:8px}
@@ -301,6 +310,24 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
   </div>
 </section>
 
+<section id="s-name" class="screen" hidden aria-labelledby="nmTitle">
+  <div class="panel" style="max-width:640px">
+    <div class="ncenter">
+      <p class="sub" id="nmKicker"></p>
+      <h2 id="nmTitle" data-t="nm_title">Enter your name</h2>
+      <div class="bigscore" id="nmScore">0</div>
+      <p class="muted" id="nmRank" role="status"></p>
+    </div>
+    <div class="nmform">
+      <label for="nmName" data-t="nm_label">Name for the leaderboard</label>
+      <div class="row"><input id="nmName" maxlength="14" autocomplete="off" spellcheck="false" enterkeyhint="send" data-tp="lb_ph"><button class="btn primary" id="b-nmSend" type="button" data-t="lb_btn">Send score</button></div>
+      <p class="muted" id="nmMsg" role="status"></p>
+    </div>
+    <ol class="lb" id="nmList"></ol>
+    <div class="row"><button class="btn" id="b-nmSkip" type="button" data-t="nm_skip">Skip</button></div>
+  </div>
+</section>
+
 <section id="s-level" class="screen dim" hidden aria-labelledby="lvTitle">
   <div class="panel" style="max-width:900px">
     <div class="rhead"><h2 id="lvTitle" data-t="levelup">Level up!</h2><span class="muted" data-t="choose">Choose a power</span></div>
@@ -407,7 +434,9 @@ const STR={en:{
  st_short:'Short',st_long:'Long',st_bun:'Bun',st_curly:'Curly',st_buzz:'Buzz',st_pony:'Ponytail',
  you:'YOU',key:'Key {n}',lb:'Leaderboard',lb_title:'High scores',lb_note:'Scores show up here after they are approved.',lb_loading:'Loading\u2026',lb_empty:'No scores yet. Be the first!',
  lb_err:"Can't reach the leaderboard right now.",lb_send:'Put your score on the leaderboard',lb_ph:'First name or nickname',lb_btn:'Send score',lb_need:'Type a name first.',lb_sending:'Sending\u2026',
- lb_sent:'Sent! It shows up once it is approved.',lb_fail:"Couldn't send it. Check your connection and try again.",lb_upd:'Updated {t}',lb_made:'Made it to 19:00',fl_mgr:"MANAGER'S\nOFFICE",fl_uc:'UNIT COORDINATOR',fl_sup:'SUPPLIES',fl_wc:'RESTROOM',fl_lounge:'STAFF LOUNGE',fl_station:"NURSES' STATION",fl_med:'MED ROOM',fl_edu:"EDUCATOR'S OFFICE",fl_elev:'ELEVATORS',hint_touch:'Drag anywhere to move',hint_keys:'WASD or arrow keys to move'
+ lb_sent:'Sent! It shows up once it is approved.',lb_fail:"Couldn't send it. Check your connection and try again.",lb_upd:'Updated {t}',lb_made:'Made it to 19:00',
+ nm_title:'Enter your name',nm_label:'Name for the leaderboard',nm_rank:'That would put you at #{n} on the leaderboard!',nm_first:'No scores on the board yet. You could be #1!',
+ nm_try:'Keep playing to crack the top {n}!',nm_skip:'Skip',nm_next:'See your results',nm_you:'YOU',fl_mgr:"MANAGER'S\nOFFICE",fl_uc:'UNIT COORDINATOR',fl_sup:'SUPPLIES',fl_wc:'RESTROOM',fl_lounge:'STAFF LOUNGE',fl_station:"NURSES' STATION",fl_med:'MED ROOM',fl_edu:"EDUCATOR'S OFFICE",fl_elev:'ELEVATORS',hint_touch:'Drag anywhere to move',hint_keys:'WASD or arrow keys to move'
 },es:{
  sub:'2 Sur · Turno de 12 horas',start:'Empezar turno',locker:'Vestidor',howto:'Cómo jugar',tag:'Sube de nivel la práctica de enfermería',back:'Volver',
  safety:'Seguridad',score:'Puntos',levelup:'¡Subiste de nivel!',choose:'Elige un poder',paused:'Pausa',resume:'Continuar',quit:'Terminar turno',
@@ -457,7 +486,9 @@ const STR={en:{
  st_short:'Corto',st_long:'Largo',st_bun:'Moño',st_curly:'Rizado',st_buzz:'Rapado',st_pony:'Cola',
  you:'TÚ',key:'Tecla {n}',lb:'Clasificación',lb_title:'Mejores puntajes',lb_note:'Los puntajes aparecen aquí cuando se aprueban.',lb_loading:'Cargando\u2026',lb_empty:'Todavía no hay puntajes. ¡Sé el primero!',
  lb_err:'No se puede cargar la clasificación ahora.',lb_send:'Pon tu puntaje en la clasificación',lb_ph:'Nombre o apodo',lb_btn:'Enviar puntaje',lb_need:'Escribe un nombre primero.',lb_sending:'Enviando\u2026',
- lb_sent:'¡Enviado! Aparece cuando lo aprueben.',lb_fail:'No se pudo enviar. Revisa tu conexión e inténtalo otra vez.',lb_upd:'Actualizado {t}',lb_made:'Llegó a las 19:00',fl_mgr:'OFICINA DE\nGERENCIA',fl_uc:'COORDINACIÓN DE UNIDAD',fl_sup:'SUMINISTROS',fl_wc:'BAÑO',fl_lounge:'SALA DEL PERSONAL',fl_station:'ESTACIÓN DE ENFERMERÍA',fl_med:'MEDICAMENTOS',fl_edu:'OFICINA DE EDUCACIÓN',fl_elev:'ELEVADORES',hint_touch:'Arrastra en cualquier parte para moverte',hint_keys:'Muévete con WASD o las flechas'
+ lb_sent:'¡Enviado! Aparece cuando lo aprueben.',lb_fail:'No se pudo enviar. Revisa tu conexión e inténtalo otra vez.',lb_upd:'Actualizado {t}',lb_made:'Llegó a las 19:00',
+ nm_title:'Escribe tu nombre',nm_label:'Nombre para la clasificación',nm_rank:'¡Quedarías en el puesto #{n} de la clasificación!',nm_first:'Todavía no hay puntajes. ¡Puedes ser el #1!',
+ nm_try:'¡Sigue jugando para entrar al top {n}!',nm_skip:'Saltar',nm_next:'Ver tus resultados',nm_you:'TÚ',fl_mgr:'OFICINA DE\nGERENCIA',fl_uc:'COORDINACIÓN DE UNIDAD',fl_sup:'SUMINISTROS',fl_wc:'BAÑO',fl_lounge:'SALA DEL PERSONAL',fl_station:'ESTACIÓN DE ENFERMERÍA',fl_med:'MEDICAMENTOS',fl_edu:'OFICINA DE EDUCACIÓN',fl_elev:'ELEVADORES',hint_touch:'Arrastra en cualquier parte para moverte',hint_keys:'Muévete con WASD o las flechas'
 }};
 let LANG='en';
 function tr(k,v){let s=STR[LANG][k];if(s==null)s=STR.en[k];if(s==null)s=k;if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]);return s}
@@ -1066,7 +1097,7 @@ function openLevelUp(){RUN.paused=true;sfx('level');buzz(25);offerAt=performance
     b.addEventListener('click',()=>pickCard(i));box.appendChild(b)});show('level')}
 function pickCard(i,force){if(SCREEN!=='level'||!OFFER[i])return;if(!force&&performance.now()-offerAt<350)return;applyUp(OFFER[i].id);sfx('click');RUN.pending--;if(RUN.pending>0){openLevelUp();return}RUN.paused=false;show('none')}
 function pause(on){if(!RUN||RUN.over)return;if(SCREEN==='level')return;RUN.paused=on;if(on){soundLabels();show('pause')}else show('none')}
-function endRun(survived,quit){const G=RUN;G.over=true;G.paused=false;G.survived=!!survived;wake(false);$('#hint').hidden=true;
+function endRun(survived,quit){const G=RUN;G.over=true;G.paused=false;G.survived=!!survived;lbSent=false;wake(false);$('#hint').hidden=true;
   const before={sc:SCRUBS.filter(scrubOpen).map(s=>s.id),nu:NURSES.filter(nurseOpen).map(n=>n.id)};
   if(survived)G.score+=500+Math.round(G.safety*10);
   const xpGain=Math.round(G.score/20);
@@ -1082,7 +1113,8 @@ function endRun(survived,quit){const G=RUN;G.over=true;G.paused=false;G.survived
   const box=$('#rStats');box.innerHTML='';for(const [k,v,hi] of rows){const d=document.createElement('div');d.className='stat'+(hi?' hi':'');d.innerHTML='<span></span><b></b>';d.querySelector('span').textContent=tr(k);d.querySelector('b').textContent=v;box.appendChild(d)}
   const ub=$('#rUnlocks');ub.innerHTML='';for(const s of newSc){const d=document.createElement('div');d.className='unl';d.innerHTML='<i></i><span></span>';d.querySelector('i').style.background=s.c;d.querySelector('span').textContent=tr('c_'+s.id);ub.appendChild(d)}
   for(const n of newNu){const d=document.createElement('div');d.className='unl';d.innerHTML='<span></span>';d.querySelector('span').textContent='★ '+tr('n_'+n.id);ub.appendChild(d)}
-  $('#rUnlockWrap').hidden=!(newSc.length||newNu.length);lbPrep();sfx(survived?'level':'miss');show('report')}
+  $('#rUnlockWrap').hidden=!(newSc.length||newNu.length);sfx(survived?'level':'miss');
+  if(LB_ON&&G.score>0)openNameEntry(survived,quit);else{lbPrep();show('report')}}
 let TOUCH=false;try{TOUCH=matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0}catch(e){}
 let hintT=0,hintGone=0;
 function showHint(){const h=$('#hint');$('#hintText').textContent=tr(TOUCH?'hint_touch':'hint_keys');$('#hintJoy').hidden=!TOUCH;$('#hintKeys').hidden=TOUCH;h.classList.remove('out');h.hidden=false;hintT=7;hintGone=0}
@@ -1101,14 +1133,30 @@ function lbRender(ol,top){ol.innerHTML='';top.forEach((e,i)=>{const li=document.
   li.append(rk,nm,sc);ol.appendChild(li)})}
 async function lbScreen(){show('lb');const ol=$('#lbList'),w=$('#lbWhen');ol.innerHTML='';w.textContent=tr('lb_loading');
   try{const top=await lbFetch();if(SCREEN!=='lb')return;lbRender(ol,top);w.textContent=top.length?'':tr('lb_empty')}catch(e){w.textContent=tr('lb_err')}}
-let lbSent=false;
-function lbPrep(){const box=$('#lbSend');box.hidden=!(LB_ON&&RUN&&RUN.score>0);lbSent=false;$('#b-lbSend').disabled=false;$('#lbMsg').textContent='';$('#lbName').value=SAVE.lbName||SAVE.look.name||''}
-async function lbSend(){if(lbSent||!RUN||!LB_ON)return;const name=$('#lbName').value.replace(/[<>"'`\\=+@]/g,'').replace(/\s+/g,' ').trim().slice(0,14);
-  if(!name){$('#lbMsg').textContent=tr('lb_need');$('#lbName').focus();return}
-  lbSent=true;$('#b-lbSend').disabled=true;$('#lbMsg').textContent=tr('lb_sending');
-  const body=JSON.stringify({name,score:RUN.score,level:RUN.level,nurse:STR.en['n_'+RUN.nurse]||'',done:!!RUN.survived});
-  try{await fetch(LB_URL,{method:'POST',mode:'no-cors',body});$('#lbName').value=name;SAVE.lbName=name;persist();$('#lbMsg').textContent=tr('lb_sent');sfx('done')}
-  catch(e){lbSent=false;$('#b-lbSend').disabled=false;$('#lbMsg').textContent=tr('lb_fail')}}
+let lbSent=false,lbBusy=false,nmTop=null,nmTimer=0;
+const lbClean=v=>String(v||'').replace(/[<>"'`\\=+@]/g,'').replace(/\s+/g,' ').trim().slice(0,14);
+async function lbPost(name){const body=JSON.stringify({name,score:RUN.score,level:RUN.level,nurse:STR.en['n_'+RUN.nurse]||'',done:!!RUN.survived});
+  await fetch(LB_URL,{method:'POST',mode:'no-cors',body});lbSent=true;SAVE.lbName=name;persist();sfx('done')}
+/* send from either box: the name screen right after the shift, or the report if they skipped */
+async function lbSubmit(inp,btn,msg,after){if(lbSent||lbBusy||!RUN||!LB_ON)return;const name=lbClean(inp.value);
+  if(!name){msg.textContent=tr('lb_need');inp.focus();return}
+  lbBusy=true;btn.disabled=true;msg.textContent=tr('lb_sending');
+  try{await lbPost(name);inp.value=name;msg.textContent=tr('lb_sent');if(after)after()}
+  catch(e){btn.disabled=false;msg.textContent=tr('lb_fail')}finally{lbBusy=false}}
+function lbPrep(){const box=$('#lbSend');box.hidden=!(LB_ON&&RUN&&RUN.score>0&&!lbSent);$('#b-lbSend').disabled=false;$('#lbMsg').textContent='';$('#lbName').value=SAVE.lbName||SAVE.look.name||''}
+function lbSend(){lbSubmit($('#lbName'),$('#b-lbSend'),$('#lbMsg'))}
+function goReport(){clearTimeout(nmTimer);if(SCREEN!=='name')return;lbPrep();show('report')}
+function nmPreview(){const ol=$('#nmList');if(!nmTop){ol.innerHTML='';return}const me={name:lbClean($('#nmName').value)||tr('nm_you'),score:RUN.score,me:true};
+  const all=nmTop.slice();let at=all.findIndex(e=>RUN.score>(Number(e.score)||0));if(at<0)at=all.length;all.splice(at,0,me);
+  const from=Math.max(0,Math.min(at-2,all.length-5)),list=all.slice(from,from+5);lbRender(ol,list);
+  Array.from(ol.children).forEach((li,i)=>{const rank=from+i+1;li.className='lbrow'+(rank<=3?' top'+rank:'')+(list[i].me?' you':'');li.querySelector('.rk').textContent=String(rank)});
+  $('#nmRank').textContent=!nmTop.length?tr('nm_first'):at<15?tr('nm_rank',{n:at+1}):tr('nm_try',{n:15})}
+function openNameEntry(survived,quit){const G=RUN;nmTop=null;$('#nmKicker').textContent=tr(survived?'r_done':quit?'r_quit':'r_fail');
+  $('#nmScore').textContent=G.score.toLocaleString();$('#nmRank').textContent='';$('#nmMsg').textContent='';$('#nmList').innerHTML='';
+  $('#nmName').value=SAVE.lbName||SAVE.look.name||'';$('#b-nmSend').disabled=false;$('#b-nmSkip').textContent=tr('nm_skip');
+  show('name');setTimeout(()=>{try{$('#nmName').focus({preventScroll:true})}catch(e){}},80);
+  lbFetch().then(top=>{if(RUN!==G||SCREEN!=='name')return;nmTop=top;nmPreview()}).catch(()=>{})}
+function nmSend(){lbSubmit($('#nmName'),$('#b-nmSend'),$('#nmMsg'),()=>{$('#b-nmSkip').textContent=tr('nm_next');nmTimer=setTimeout(goReport,1600)})}
 let boardTimer=0;
 function boardMode(){show('board');const tick=async()=>{const w=$('#bdWhen');try{const top=await lbFetch();lbRender($('#bdList'),top);
     const t=new Date().toLocaleTimeString(LANG==='es'?'es':'en-US',{hour:'numeric',minute:'2-digit'});w.textContent=(top.length?'':tr('lb_empty')+' \u00b7 ')+tr('lb_upd',{t})}
@@ -1147,6 +1195,8 @@ $('#b-locker').addEventListener('click',()=>{ensureAudio();sfx('click');lockerSc
 $('#b-howto').addEventListener('click',()=>{ensureAudio();sfx('click');howtoScreen()});
 $('#b-lb').addEventListener('click',()=>{ensureAudio();sfx('click');lbScreen()});$('#b-lbBack').addEventListener('click',titleScreen);
 $('#b-lbSend').addEventListener('click',lbSend);$('#lbName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbSend()}});
+$('#b-nmSend').addEventListener('click',nmSend);$('#b-nmSkip').addEventListener('click',goReport);$('#nmName').addEventListener('input',nmPreview);
+$('#nmName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();nmSend()}else if(e.key==='Escape'){e.preventDefault();goReport()}});
 $('#b-lockerBack').addEventListener('click',titleScreen);$('#b-howBack').addEventListener('click',titleScreen);$('#b-rTitle').addEventListener('click',()=>{RUN=null;titleScreen()});
 $('#b-en').addEventListener('click',()=>setLang('en'));$('#b-es').addEventListener('click',()=>setLang('es'));
 const toggleSound=()=>{SAVE.sound=!SAVE.sound;persist();ensureAudio();soundLabels();sfx('click')};$('#b-sound').addEventListener('click',toggleSound);$('#b-sound2').addEventListener('click',toggleSound);
