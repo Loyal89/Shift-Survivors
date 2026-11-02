@@ -8,6 +8,8 @@ A survivors-style arcade game set on 2 South: work a 12-hour shift, keep Unit Sa
 - Move with WASD or the arrow keys. On a phone or tablet, drag anywhere.
 - Stand by a patient's door to care for them. Finish tasks before their timers run out.
 - Each level, pick a power. Career XP unlocks scrub colors and new nurses.
+- Grab kudos cards, coffee, thank-you baskets and clipboards on the floor. Spend kudos on **Perks** between shifts: start with extra nurses, level up faster, and more.
+- Collect 12 badge reels and wear one on your name tag.
 
 Progress saves in each player's own browser. No patient data is used or collected.
 
