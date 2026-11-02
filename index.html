@@ -88,7 +88,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
 #joy{position:fixed;z-index:15;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:3px solid rgba(45,226,230,.55);background:rgba(45,226,230,.08);pointer-events:none}
 #joy i{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(45,226,230,.55);display:block}
 /* level-up */
-#cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#cards{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:14px}
 .card{appearance:none;text-align:left;border:3px solid var(--line);background:#100d2c;padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;box-shadow:4px 4px 0 #000;min-width:0}
 .card:hover,.card:focus-visible{border-color:var(--gold)}
 .card .ct{display:flex;gap:10px;align-items:center}
@@ -163,6 +163,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
   .stats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}.stat{padding:4px 8px}.stat b{font-size:13px}
   .grade{font-size:34px}
   #cards{gap:10px}.card{padding:10px;gap:4px}.card p{font-size:19px}
+  #s-title .menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:min(600px,100%)}#s-title .menu .primary{grid-column:1/-1}
 }
 #hint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;
   pointer-events:none;text-align:center;transition:opacity .4s}
@@ -216,6 +217,23 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
 .scan2{font-size:clamp(24px,2.4vw,38px);color:var(--cyan);margin:0}
 .burl{font-size:clamp(18px,1.7vw,28px);color:var(--muted);margin:0;overflow-wrap:anywhere}
 @media (max-width:900px){.bwrap{grid-template-columns:minmax(0,1fr)}.qrbox{width:min(70vw,300px)}}
+/* perks, kudos and badge reels */
+.kudos{font-family:var(--px);font-size:14px;color:var(--gold);white-space:nowrap}
+.perks{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:10px}
+.perk{background:#100d2c;border:2px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.perk.maxed{border-color:var(--gold)}
+.perk .pt{display:flex;gap:10px;align-items:center}
+.perk canvas{width:32px;height:32px;image-rendering:pixelated;flex:none}
+.perk b{font-weight:400;font-size:23px;color:var(--ink);line-height:1}
+.pips{display:flex;gap:4px;margin-top:4px}.pips i{width:14px;height:8px;background:#2a2550;border:1px solid #000;display:block}.pips i.on{background:var(--cyan)}
+.perk p{font-size:19px;color:var(--muted);flex:1;margin:0}
+.perk .btn{font-size:20px;padding:6px 10px;min-height:44px}
+.reels{display:flex;flex-wrap:wrap;gap:6px}
+.reel{appearance:none;min-width:44px;height:44px;border:2px solid var(--line);background:#100d2c;cursor:pointer;display:grid;place-items:center;padding:0 6px;font:inherit;font-size:18px;color:var(--muted)}
+.reel canvas{width:24px;height:24px;image-rendering:pixelated}
+.reel[aria-pressed="true"]{border-color:var(--gold)}
+.reel.locked{opacity:.35;cursor:not-allowed}.reel.locked canvas{filter:brightness(0)}
+#kudosHud{font-family:var(--px);font-size:10px;color:var(--gold)}#kudosHud:empty{display:none}
 @media (prefers-reduced-motion:reduce){#toast,#hint{transition:none}#hint .ghost i{animation:none}}
 </style>
 
@@ -226,7 +244,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
   <div id="hudrow">
     <div class="hbox"><span id="clock">07:00</span><div class="bar"><i id="shiftfill"></i></div></div>
     <div class="hbox"><div class="hlabel"><span data-t="safety">Unit safety</span><b id="safetxt">100</b></div><div class="bar"><i id="safefill"></i></div></div>
-    <div class="hbox"><div class="hlabel"><span data-t="score">Score</span></div><span id="score">0</span></div>
+    <div class="hbox"><div class="hlabel"><span data-t="score">Score</span></div><span id="score">0</span><span id="kudosHud"></span></div>
     <button id="pausebtn" type="button" aria-label="Pause">II</button>
   </div>
   <div id="ups"></div>
@@ -245,6 +263,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
     <div class="menu">
       <button class="btn primary" id="b-start" type="button" data-t="start">Start shift</button>
       <button class="btn" id="b-locker" type="button" data-t="locker">Locker</button>
+      <button class="btn" id="b-perks" type="button">Perks</button>
       <button class="btn" id="b-howto" type="button" data-t="howto">How to play</button>
       <button class="btn" id="b-lb" type="button" data-t="lb" hidden>Leaderboard</button>
     </div>
@@ -269,6 +288,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
         <div class="opt"><h3 data-t="o_hair">Hair</h3><div class="styles" id="optStyle"></div><div class="swatches" id="optHairc" style="margin-top:8px"></div></div>
         <div class="opt"><h3 data-t="o_skin">Skin tone</h3><div class="swatches" id="optSkin"></div>
           <h3 style="margin-top:12px" data-t="o_extra">Extras</h3><div class="styles" id="optExtra"></div></div>
+        <div class="opt wide"><h3 id="reelTitle">Badge reels</h3><div class="reels" id="optReel"></div></div>
         <div class="opt wide"><h3><label for="nameIn" data-t="o_name">Name on badge</label></h3><input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false"></div>
       </div>
     </div>
@@ -282,6 +302,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
     <h3 data-t="tasks">Tasks</h3>
     <div class="legend" id="legend"></div>
     <div class="row"><button class="btn primary" id="b-howStart" type="button" data-t="start">Start shift</button><button class="btn" id="b-howBack" type="button" data-t="back">Back</button></div>
+  </div>
+</section>
+
+<section id="s-perks" class="screen" hidden aria-labelledby="pkTitle">
+  <div class="panel">
+    <div class="rhead"><h2 id="pkTitle" data-t="pk_title">Perks</h2>
+      <div class="row"><span class="kudos" id="pkKudos"></span><button class="btn" id="b-pkBack" type="button" data-t="back">Back</button></div></div>
+    <p class="muted" data-t="pk_sub">Spend kudos on perks that last every shift.</p>
+    <div class="perks" id="pkList"></div>
+    <p class="muted" id="pkMsg" role="status"></p>
   </div>
 </section>
 
@@ -330,7 +360,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
 
 <section id="s-level" class="screen dim" hidden aria-labelledby="lvTitle">
   <div class="panel" style="max-width:900px">
-    <div class="rhead"><h2 id="lvTitle" data-t="levelup">Level up!</h2><span class="muted" data-t="choose">Choose a power</span></div>
+    <div class="rhead"><div><h2 id="lvTitle">Level up!</h2><span class="muted" id="lvSub">Choose a power</span></div><button class="btn" id="b-reroll" type="button" hidden></button></div>
     <div id="cards"></div>
   </div>
 </section>
@@ -356,7 +386,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
       <div class="row"><input id="lbName" maxlength="14" autocomplete="off" spellcheck="false" data-tp="lb_ph"><button class="btn" id="b-lbSend" type="button" data-t="lb_btn">Send score</button></div>
       <p class="muted" id="lbMsg" role="status"></p>
     </div>
-    <div class="row"><button class="btn primary" id="b-again" type="button" data-t="again">Next shift</button><button class="btn" id="b-rLocker" type="button" data-t="locker">Locker</button><button class="btn" id="b-rTitle" type="button" data-t="home">Title</button></div>
+    <div class="row"><button class="btn primary" id="b-again" type="button" data-t="again">Next shift</button><button class="btn" id="b-rPerks" type="button" data-t="perks">Perks</button><button class="btn" id="b-rLocker" type="button" data-t="locker">Locker</button><button class="btn" id="b-rTitle" type="button" data-t="home">Title</button></div>
   </div>
 </section>
 
@@ -376,7 +406,7 @@ function shade(hex,f){const n=parseInt(hex.slice(1),16);let r=n>>16,g=(n>>8)&255
 
 /* ================= save ================= */
 const SAVE_KEY='shiftSurvivors.v1';
-const DEF={v:1,lang:'en',sound:true,careerXp:0,shifts:0,runs:0,strokes:0,dcs:0,adms:0,bestLevel:0,bestScore:0,
+const DEF={v:1,lang:'en',sound:true,careerXp:0,kudos:0,perks:{},reels:[],reel:'',shifts:0,runs:0,strokes:0,dcs:0,adms:0,bestLevel:0,bestScore:0,
   look:{skin:1,style:0,hairc:1,scrub:'white',name:'',gl:false,bd:false,cap:false},nurse:'newgrad',lbName:''};
 let SAVE=null;
 function loadSave(hot){let s=null;try{s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null')}catch(e){}
@@ -436,7 +466,19 @@ const STR={en:{
  n_resource:'Resource Nurse',p_resource:'Starts with the resource nurse on the floor.',
  c_white:'White',c_carib:'Caribbean blue',c_ceil:'Ceil blue',c_royal:'Royal blue',c_navy:'Navy',c_hunter:'Hunter green',c_wine:'Wine',c_pewter:'Pewter',
  st_short:'Short',st_long:'Long',st_bun:'Bun',st_curly:'Curly',st_buzz:'Buzz',st_pony:'Ponytail',
- you:'YOU',key:'Key {n}',lb:'Leaderboard',lb_title:'High scores',lb_note:'Scores show up here after they are approved.',lb_loading:'Loading\u2026',lb_empty:'No scores yet. Be the first!',
+ you:'YOU',key:'Key {n}',perks:'Perks',kudos:'{n} kudos',pk_title:'Perks',pk_sub:'Spend kudos on perks that last every shift. You earn kudos from your score and from kudos cards on the floor.',
+ pk_buy:'Buy · {n}',pk_max:'Maxed',pk_need:'{n} more kudos needed',pk_bought:'{p} upgraded!',
+ p_startRN:'Day-shift buddy',pd_startRN:'Start every shift with one more RN on your team.',p_startCNA:'CNA on the floor',pd_startCNA:'Start every shift with one more CNA.',
+ p_startRes:'Resource on call',pd_startRes:'Start every shift with the resource nurse already on the floor.',p_headstart:'Head start',pd_headstart:'Pick one free power when the shift starts.',
+ p_growth:'Fast learner',pd_growth:'Earn 10% more experience from every star.',p_choice:'More options',pd_choice:'Level-ups offer 4 powers instead of 3.',
+ p_reroll:'Second opinion',pd_reroll:'Reroll the power choices once per shift.',p_care:'Experience',pd_care:'You care 5% faster.',
+ p_team:'Team training',pd_team:'Your RNs, CNAs and resource nurse work 6% faster.',p_speed:'Good shoes',pd_speed:'You and your team move 5% faster.',
+ p_safety:'Safety culture',pd_safety:'Start with 10 more Unit Safety, and a higher max.',p_magnet:'Deep pockets',pd_magnet:'Grab stars, kudos and pickups from farther away.',
+ p_luck:'Lucky shift',pd_luck:'More kudos cards, thank-you baskets and clipboards on the floor.',p_greed:'Overtime',pd_greed:'Earn 10% more kudos.',
+ f_kudos:'+{n} kudos',f_coffee:'Coffee! Faster for 15 s',f_basket:'Thank-you basket!',f_clip:'Charting caught up!',gift_title:'Thank-you basket!',gift_sub:'Pick a gift',reroll:'Reroll ({n})',
+ s_kudos:'Kudos earned',reels:'Badge reels {n}/{m}',reel_new:'New badge reel: {r}',reel_none:'None',reel_locked:'Not found yet',
+ rl_heart:'Heart',rl_coffee:'Coffee',rl_star:'Star',rl_brain:'Brain',rl_bell:'Call bell',rl_pill:'Pill',rl_bolt:'Lightning',rl_shoe:'Sneaker',rl_donut:'Donut',rl_phone:'Phone',rl_mask:'Mask',rl_steth:'Stethoscope',
+ h9:'Grab kudos cards, coffee, thank-you baskets and clipboards on the floor. Between shifts, spend kudos on Perks: start with extra nurses, level up faster and more.',lb:'Leaderboard',lb_title:'High scores',lb_note:'Scores show up here after they are approved.',lb_loading:'Loading\u2026',lb_empty:'No scores yet. Be the first!',
  lb_err:"Can't reach the leaderboard right now.",lb_send:'Put your score on the leaderboard',lb_ph:'First name or nickname',lb_btn:'Send score',lb_need:'Type a name first.',lb_sending:'Sending\u2026',
  lb_sent:'Sent! It shows up once it is approved.',lb_fail:"Couldn't send it. Check your connection and try again.",lb_upd:'Updated {t}',lb_made:'Made it to 19:00',
  nm_title:'Enter your name',nm_label:'Name for the leaderboard',nm_rank:'That would put you at #{n} on the leaderboard!',nm_first:'No scores on the board yet. You could be #1!',
@@ -492,7 +534,19 @@ const STR={en:{
  n_resource:'Enfermero(a) de recursos',p_resource:'Empieza con recursos en el piso.',
  c_white:'Blanco',c_carib:'Azul caribe',c_ceil:'Azul cielo',c_royal:'Azul rey',c_navy:'Azul marino',c_hunter:'Verde cazador',c_wine:'Vino',c_pewter:'Peltre',
  st_short:'Corto',st_long:'Largo',st_bun:'Moño',st_curly:'Rizado',st_buzz:'Rapado',st_pony:'Cola',
- you:'TÚ',key:'Tecla {n}',lb:'Clasificación',lb_title:'Mejores puntajes',lb_note:'Los puntajes aparecen aquí cuando se aprueban.',lb_loading:'Cargando\u2026',lb_empty:'Todavía no hay puntajes. ¡Sé el primero!',
+ you:'TÚ',key:'Tecla {n}',perks:'Ventajas',kudos:'{n} kudos',pk_title:'Ventajas',pk_sub:'Gasta kudos en ventajas que duran todos los turnos. Ganas kudos con tu puntaje y con las tarjetas de kudos del piso.',
+ pk_buy:'Comprar · {n}',pk_max:'Al máximo',pk_need:'Faltan {n} kudos',pk_bought:'¡{p} mejorado!',
+ p_startRN:'Compañero de día',pd_startRN:'Empieza cada turno con un(a) RN más en tu equipo.',p_startCNA:'CNA en el piso',pd_startCNA:'Empieza cada turno con un(a) CNA más.',
+ p_startRes:'Recursos de guardia',pd_startRes:'Empieza cada turno con el/la enfermero(a) de recursos ya en el piso.',p_headstart:'Ventaja inicial',pd_headstart:'Elige un poder gratis al empezar el turno.',
+ p_growth:'Aprendiz rápido',pd_growth:'Gana 10% más experiencia con cada estrella.',p_choice:'Más opciones',pd_choice:'Al subir de nivel eliges entre 4 poderes en vez de 3.',
+ p_reroll:'Segunda opinión',pd_reroll:'Cambia las opciones de poder una vez por turno.',p_care:'Experiencia',pd_care:'Cuidas 5% más rápido.',
+ p_team:'Entrenamiento del equipo',pd_team:'Tus RNs, CNAs y recursos trabajan 6% más rápido.',p_speed:'Buenos zapatos',pd_speed:'Tú y tu equipo caminan 5% más rápido.',
+ p_safety:'Cultura de seguridad',pd_safety:'Empieza con 10 más de Seguridad y un máximo más alto.',p_magnet:'Bolsillos grandes',pd_magnet:'Recoge estrellas, kudos y objetos desde más lejos.',
+ p_luck:'Turno con suerte',pd_luck:'Más tarjetas de kudos, canastas de agradecimiento y portapapeles en el piso.',p_greed:'Horas extra',pd_greed:'Gana 10% más kudos.',
+ f_kudos:'+{n} kudos',f_coffee:'¡Café! Más rápido 15 s',f_basket:'¡Canasta de agradecimiento!',f_clip:'¡Documentación al día!',gift_title:'¡Canasta de agradecimiento!',gift_sub:'Elige un regalo',reroll:'Cambiar ({n})',
+ s_kudos:'Kudos ganados',reels:'Porta-gafetes {n}/{m}',reel_new:'Nuevo porta-gafete: {r}',reel_none:'Ninguno',reel_locked:'Todavía no lo encuentras',
+ rl_heart:'Corazón',rl_coffee:'Café',rl_star:'Estrella',rl_brain:'Cerebro',rl_bell:'Timbre',rl_pill:'Pastilla',rl_bolt:'Rayo',rl_shoe:'Tenis',rl_donut:'Dona',rl_phone:'Teléfono',rl_mask:'Mascarilla',rl_steth:'Estetoscopio',
+ h9:'Recoge tarjetas de kudos, café, canastas de agradecimiento y portapapeles en el piso. Entre turnos, gasta kudos en Ventajas: empieza con más enfermeros, sube de nivel más rápido y más.',lb:'Clasificación',lb_title:'Mejores puntajes',lb_note:'Los puntajes aparecen aquí cuando se aprueban.',lb_loading:'Cargando\u2026',lb_empty:'Todavía no hay puntajes. ¡Sé el primero!',
  lb_err:'No se puede cargar la clasificación ahora.',lb_send:'Pon tu puntaje en la clasificación',lb_ph:'Nombre o apodo',lb_btn:'Enviar puntaje',lb_need:'Escribe un nombre primero.',lb_sending:'Enviando\u2026',
  lb_sent:'¡Enviado! Aparece cuando lo aprueben.',lb_fail:'No se pudo enviar. Revisa tu conexión e inténtalo otra vez.',lb_upd:'Actualizado {t}',lb_made:'Llegó a las 19:00',
  nm_title:'Escribe tu nombre',nm_label:'Nombre para la clasificación',nm_rank:'¡Quedarías en el puesto #{n} de la clasificación!',nm_first:'Todavía no hay puntajes. ¡Puedes ser el #1!',
@@ -533,7 +587,7 @@ const ICONS={
  stroke:["............","...KKKKKK...","..KVVVVVVK..",".KVVVYVVVVK.",".KVVYYVVVVK.","KVVYYYYYVVVK","KVVVVYYVVVVK","KVVVYYVVVVVK",".KVVYVVVVVK.","..KKKVVKKK..","....KVVK....",".....KK....."],
  rapid:["............","..KKKKKKKK..",".KWWWWWWWWK.",".KWWWRRWWWK.",".KWWWRRWWWK.",".KWRRRRRRWK.",".KWRRRRRRWK.",".KWWWRRWWWK.",".KWWWRRWWWK.",".KWWWWWWWWK.","..KKKKKKKK..","............"],
  book:["............",".KKKKKKKKKK.",".KBBBBKWWWK.",".KBBBBKWWWK.",".KBYYBKWWWK.",".KBBBBKWWWK.",".KBBBBKWWWK.",".KBBBBKWWWK.",".KBBBBKWWWK.",".KKKKKKKKKK.","..KWWWWWWK..","...KKKKKK..."],
- steth:[".SS.....SS..",".SK.....KS..","..K.....K...","..K.....K...","...K...K....","....KKK.....",".....K......",".....K..KK..",".....K.KSSK.","......KSSSK.",".......KSK..","........K..."],
+ steth:[".SS.....SS..",".SC.....CS..","..C.....C...","..C.....C...","...C...C....","....CCC.....",".....C......",".....C..DD..",".....C.DSSD.","......CSWSD.",".......DSD..","........D..."],
  cna:["....R..R....","...RRRRRR...","...RRRRRR...","....RRRR....",".....RR.....","KK........KK","KTK......KTK","KTTK....KTTK",".KTTKKKKTTK.","..KTTTTTTK..","...KKKKKK...","............"],
  star:[".....KK.....",".....KYK....","....KYYK....","KKKKKYYKKKKK","KYYYYYYYYYYK",".KYYYYYYYYK.","..KYYYYYYK..","..KYYKKYYK..",".KYYK..KYYK.",".KYK....KYK.",".KK......KK.","............"],
  shoe:["............","............","...KKKK.....","...KWWK.....","...KWCWK....","...KWWCWKK..","..KWWWWCWWK.",".KWWWWWWWWWK",".KCCCCCCCCCK",".KKKKKKKKKKK","............","............"],
@@ -544,6 +598,9 @@ const ICONS={
  move:[".....KK.....","....KCCK....","...KCCCCK...","....KCCK....","KK..KCCK..KK","KCKKKCCKKKCK","KCCCCCCCCCCK","KCKKKCCKKKCK","KK..KCCK..KK","....KCCK....","...KCCCCK...","....KKKK...."],
  phone:["............","..KKKKKKKK..",".KCCCCCCCCK.","KCCKKKKKKCCK","KCK......KCK","KKK.KKKK.KKK","...KCCCCK...","..KCKCKCCK..","..KCCCCCCK..","..KCKCKCCK..","..KCCCCCCK..","..KKKKKKKK.."],
  mask:["............","............","...KKKKKK...","..KWWWWWWK..",".KWWWWWWWWK.","KKWWLLLLWWKK","K.KWWWWWWK.K","K..KWWWWK..K","....KKKK....","............","............","............"],
+ kudos:["............",".KKKKKKKKKK.",".KYYYYYYYYK.",".KYYYKKYYYK.",".KYYKWWKYYK.",".KYKWWWWKYK.",".KYYKWWKYYK.",".KYYYKKYYYK.",".KYYYYYYYYK.",".KyyyyyyyyK.",".KKKKKKKKKK.","............"],
+ basket:["....KKKK....","...K....K...","..K......K..","..K......K..","KKKKKKKKKKKK","KPRRYYGGBBPK",".KNNNNNNNNK.",".KNONONONOK.",".KNNNNNNNNK.","..KNONONOK..","..KNNNNNNK..","...KKKKKK..."],
+ clip:["....KKKK....","..KKSWWSKK..","..KNKKKKNK..","..KNWWWWNK..","..KNWKKWNK..","..KNWWWWNK..","..KNWKKKNK..","..KNWWWWNK..","..KNWKKWNK..","..KNWWWWNK..","..KNNNNNNK..","..KKKKKKKK.."],
  star2:["............",".....YY.....","....YYYY....","YYYYYWWYYYYY",".YYYWWWWYYY.","..YYYWWYYY..","..YYYYYYYY..",".YYYY..YYYY.",".YY......YY.","............","............","............"]
 };
 const iconCache={};
@@ -843,6 +900,14 @@ const UP=[{id:'know',max:5,icon:'book',w:3},{id:'dc',max:5,icon:'dc',w:3},{id:'a
  {id:'cna',max:3,icon:'cna',w:3},{id:'res',max:4,icon:'star',w:3},{id:'neuro',max:3,icon:'brain',w:2},{id:'shoes',max:4,icon:'shoe',w:2},
  {id:'presence',max:4,icon:'radar',w:2},{id:'magnet',max:3,icon:'magnet',w:1},{id:'huddle',max:3,icon:'coffee',w:1},{id:'ppe',max:2,icon:'mask',w:2}];
 const SNACK={id:'snack',max:99,icon:'snack',w:0};
+const PERKS=[{id:'startRN',max:2,cost:[120,300],icon:'steth'},{id:'startCNA',max:2,cost:[90,220],icon:'cna'},{id:'startRes',max:1,cost:[260],icon:'star'},
+ {id:'headstart',max:3,cost:[100,200,300],icon:'bolt'},{id:'growth',max:5,cost:[40,70,100,140,180],icon:'star2'},{id:'choice',max:1,cost:[350],icon:'radar'},
+ {id:'reroll',max:3,cost:[70,140,210],icon:'clip'},{id:'care',max:5,cost:[40,70,100,140,180],icon:'book'},{id:'team',max:5,cost:[45,80,120,160,200],icon:'heart'},
+ {id:'speed',max:3,cost:[50,100,150],icon:'shoe'},{id:'safety',max:5,cost:[40,70,100,140,180],icon:'rapid'},{id:'magnet',max:3,cost:[35,70,105],icon:'magnet'},
+ {id:'luck',max:3,cost:[60,120,180],icon:'basket'},{id:'greed',max:5,cost:[50,80,120,160,200],icon:'kudos'}];
+const REELS=[['heart','heart'],['coffee','coffee'],['star','star'],['brain','brain'],['bell','bell'],['pill','pill'],['bolt','bolt'],['shoe','shoe'],['donut','snack'],['phone','phone'],['mask','mask'],['steth','steth']];
+const ITEM={kudos:{icon:'kudos',sz:18,glow:'#ffd23f'},coffee:{icon:'coffee',sz:22,glow:'#ffb27a'},basket:{icon:'basket',sz:24,glow:'#ff8fc4'},clip:{icon:'clip',sz:20,glow:'#2de2e6'}};
+const pk=id=>(SAVE&&SAVE.perks&&SAVE.perks[id])||0, luckMul=()=>1+.2*pk('luck'), reelIcon=id=>{const r=REELS.find(x=>x[0]===id);return r?r[1]:null};
 const SHIFT_SEC=420, GPS=720/SHIFT_SEC; // game minutes per real second
 const CALL_RATE=0.006, ALARM_RATE=0.0018;
 
@@ -883,6 +948,11 @@ function startRun(nurseId){
   [[200,420],[450,680]].forEach(([a,b])=>sched(rnd(a,b),()=>urgent('rapid')));
   P.x=START.x;P.y=START.y;P.dir='down';P.focus=null;spawnDocs();
   for(const k in nurse.perk){for(let i=0;i<nurse.perk[k];i++)applyUp(k,true)}
+  // permanent perks bought with kudos
+  for(let i=0;i<pk('startRN');i++)addHelper('rn',true);for(let i=0;i<pk('startCNA');i++)addHelper('cna',true);
+  if(pk('startRes')&&!RUN.up.res){RUN.up.res=1;addHelper('res',true)}
+  RUN.safetyMax+=10*pk('safety');RUN.safety=RUN.safetyMax;RUN.rerolls=pk('reroll');RUN.pending+=pk('headstart');
+  RUN.gift=0;RUN.kudos=0;RUN.buffT=0;RUN.items=[];RUN.coffeeT=rnd(35,60);RUN.newReels=[];
   cam.x=P.x;cam.y=P.y;
   SAVE.runs++;persist();
 }
@@ -911,6 +981,8 @@ function completeTask(k){const G=RUN,d=TT[k.type],onTime=!k.over,r=k.room;remove
   if(k.type==='neuro'){G.stats.neuroDone++;if(onTime)G.stats.neuroOn++}
   let xp=d.xp;if(k.type==='stroke')xp=Math.round(xp*(1+.5*G.up.neuro));
   const nx=r.side==='left'?1:r.side==='right'?-1:0,ny=r.side==='top'?1:r.side==='bot'||r.side==='desk'?-1:0;spawnOrbs(r.door.x+nx*22,r.door.y+ny*22,xp,nx,ny);
+  if(Math.random()<.07*luckMul())dropItem('kudos',r.door.x+nx*30+rnd(-14,14),r.door.y+ny*30,2+((Math.random()*4)|0));
+  if(Math.random()<.015*luckMul())dropItem('clip',r.door.x+nx*34+rnd(-10,10),r.door.y+ny*34);
   let pts=d.xp*10*(onTime?1:.5);if(k.type==='dc')pts+=100;if(k.type==='adm')pts+=120;if(k.type==='stroke'&&onTime)pts+=200;G.score+=Math.round(pts);
   G.safety=Math.min(G.safetyMax,G.safety+(onTime?1.5:.5));
   floater(r.bed.x,r.bed.y-48,onTime?tr('f_ontime'):tr('f_late'),onTime?'#36c26a':'#ffd23f');sfx('done');burst(r.bed.x,r.bed.y-36,onTime?'#36c26a':'#ffd23f',10);burst(r.bed.x,r.bed.y-36,'#ffffff',4);
@@ -924,26 +996,26 @@ function expire(k){const G=RUN,d=TT[k.type],r=k.room;removeTask(k);G.stats.misse
   if(k.type==='alarm'){G.stats.falls++;floater(r.bed.x,r.bed.y-48,tr('f_fall'),'#ff4d5e');toast(tr('t_fall',{r:r.num}),'bad');buzz(140)}
   else{floater(r.bed.x,r.bed.y-48,tr('f_missed'),'#ff4d5e');burst(r.bed.x,r.bed.y-36,'#ff4d5e',8);if(URG[k.type]>=2)toast(tr('t_missed',{k:tr('k_'+k.type),r:r.num}),'bad')}
   sfx('miss')}
-function discharge(r){for(const k of r.tasks.slice())removeTask(k);const look=r.pt.look;r.pt=null;r.state='evs';r.evsUntil=gmNow()+50;hearts(r.door.x,r.door.y,3);
+function discharge(r){for(const k of r.tasks.slice())removeTask(k);const look=r.pt.look;r.pt=null;r.state='evs';r.evsUntil=gmNow()+50;hearts(r.door.x,r.door.y,3);{const nx=r.side==='left'?1:r.side==='right'?-1:0,ny=r.side==='top'?1:r.side==='bot'?-1:0;if(Math.random()<.35*luckMul())dropItem('basket',r.door.x+nx*34,r.door.y+ny*34)}
   RUN.npcs.push({kind:'evs',look:randomLook('pewter','evs'),x:ELEV.x,y:ELEV.y,path:route(ELEV.x,ELEV.y,r.door.x,r.door.y),phase:'go',room:r,dir:'down',anim:0});
   spawnTransport('wheel',r.door.x,r.door.y,ELEV.x,ELEV.y,null,look)}
 function spawnTransport(kind,fx,fy,tx,ty,done,look){RUN.transports.push({kind,x:fx,y:fy,path:route(fx,fy,tx,ty),done,look:look||{skin:(Math.random()*6)|0,style:(Math.random()*6)|0,hairc:(Math.random()*6)|0},
   aide:randomLook('pewter','cna'),dir:'down',anim:0})}
 function spawnOrbs(x,y,xp,nx,ny){while(xp>0){const v=xp>=10?10:xp>=5?5:1;xp-=v;const a=Math.random()*Math.PI*2,s=rnd(30,80);RUN.orbs.push({x,y,vx:Math.cos(a)*s+(nx||0)*90,vy:Math.sin(a)*s+(ny||0)*90,v,t:0})}}
 function floater(x,y,text,color){RUN.floaters.push({x,y,text,color,t:0})}
-function addHelper(kind){const L=randomLook(kind==='rn'?'royal':kind==='cna'?'hunter':'wine',kind);
+function addHelper(kind,quiet){const L=randomLook(kind==='rn'?'royal':kind==='cna'?'hunter':'wine',kind);
   const h={kind,x:ELEV.x,y:ELEV.y,look:L,dir:'down',anim:0,target:null,path:[],think:0,idle:0};RUN.helpers.push(h);
-  toast(tr(kind==='rn'?'t_rn':kind==='cna'?'t_cna':'t_res'))}
+  if(!quiet)toast(tr(kind==='rn'?'t_rn':kind==='cna'?'t_cna':'t_res'))}
 function applyUp(id,quiet){const U=RUN.up;if(id==='snack'){RUN.safety=Math.min(RUN.safetyMax,RUN.safety+15);return}U[id]++;
-  if(id==='rn')addHelper('rn');if(id==='cna')addHelper('cna');if(id==='res'){if(U.res===1)addHelper('res');else if(!quiet)toast(tr('t_resup'))}
+  if(id==='rn')addHelper('rn',quiet);if(id==='cna')addHelper('cna',quiet);if(id==='res'){if(U.res===1)addHelper('res',quiet);else if(!quiet)toast(tr('t_resup'))}
   if(id==='huddle'){RUN.safetyMax+=10;RUN.safety=Math.min(RUN.safetyMax,RUN.safety+25)}
   // tasks waiting on a Spanish speaker lose the language delay once the form is in use
   if(id==='dc'&&U.dc===1)for(const k of RUN.tasks)if(k.type==='dc'&&k.room.pt&&k.room.pt.es)k.work=TT.dc.work;
   renderUps()}
 function rate(who,k){const U=RUN.up;let r=who==='you'?1:who==='rn'?.8:who==='cna'?1:(1.15+.25*(U.res-1));
-  r*=who==='you'?1+.25*U.know:1+.1*U.know;if(k.type==='dc')r*=1+.4*U.dc;if(k.type==='adm'||k.type==='report')r*=1+.4*U.adm;if(k.type==='neuro'||k.type==='stroke')r*=1+.4*U.neuro;
+  r*=who==='you'?1+.25*U.know:1+.1*U.know;r*=who==='you'?1+.05*pk('care'):1+.06*pk('team');if(k.type==='dc')r*=1+.4*U.dc;if(k.type==='adm'||k.type==='report')r*=1+.4*U.adm;if(k.type==='neuro'||k.type==='stroke')r*=1+.4*U.neuro;
   const iso=k.room.pt&&k.room.pt.iso;if(iso)r/=1+(ISO[iso].mul-1)*(1-.5*U.ppe);return r}
-const careR=()=>110*(1+.2*upLv('presence')), magR=()=>70*(1+.6*upLv('magnet')), spdMul=()=>1+.12*upLv('shoes');
+const careR=()=>110*(1+.2*upLv('presence')), magR=()=>70*(1+.6*upLv('magnet'))*(1+.2*pk('magnet')), spdMul=()=>1+.12*upLv('shoes')+.05*pk('speed');
 function prio(k){return (URG[k.type]||0)+k.age/k.due+(k.over?1:0)}
 
 /* ================= update ================= */
@@ -977,7 +1049,7 @@ function update(dt){
     if(Math.random()<CALL_RATE*dgm*ramp)addTask(r,'call');if(r.pt.fall&&Math.random()<ALARM_RATE*dgm*ramp)addTask(r,'alarm')}
   for(const k of G.tasks.slice()){k.age+=dt;if(k.age>k.due){k.over=true;G.safety-=TT[k.type].drain*.8*dt;if(TT[k.type].exp&&k.age>k.due+TT[k.type].exp)expire(k)}}
   // you
-  let [ix,iy]=AUTO?autopilot(dt):inputVec();const sp=165*spdMul();tickHint(dt,!!(ix||iy));
+  let [ix,iy]=AUTO?autopilot(dt):inputVec();const sp=165*spdMul()*(G.buffT>0?1.25:1);if(G.buffT>0)G.buffT-=dt;tickHint(dt,!!(ix||iy));
   if(ix||iy){const nx=P.x+ix*sp*dt,ny=P.y+iy*sp*dt;
     if(canStand(nx,ny)){P.x=nx;P.y=ny}else if(canStand(nx,P.y))P.x=nx;else if(canStand(P.x,ny))P.y=ny;setDir(P,ix,iy);P.anim+=dt}else P.anim=0;
   const R=careR();let best=null,bs=-1e9;
@@ -994,11 +1066,15 @@ function update(dt){
   // experience stars
   const M=magR();for(const o of G.orbs.slice()){o.t+=dt;const dx=P.x-o.x,dy=P.y-12-o.y,d=hyp(dx,dy);
     if(d<M){const s=Math.min(700,220+(M-d)*6);o.vx=dx/d*s;o.vy=dy/d*s}else{o.vx*=Math.pow(.05,dt);o.vy*=Math.pow(.05,dt)}
-    o.x+=o.vx*dt;o.y+=o.vy*dt;if(d<18){G.orbs.splice(G.orbs.indexOf(o),1);G.xp+=o.v;if(G.t-G.lastXpSfx>.06){sfx('xp');G.lastXpSfx=G.t}}}
+    o.x+=o.vx*dt;o.y+=o.vy*dt;if(d<18){G.orbs.splice(G.orbs.indexOf(o),1);G.xp+=o.v*(1+.1*pk('growth'));if(G.t-G.lastXpSfx>.06){sfx('xp');G.lastXpSfx=G.t}}}
+  G.coffeeT-=dt;if(G.coffeeT<=0){G.coffeeT=rnd(70,110);if(G.items.filter(i=>i.type==='coffee').length<2){const q=ringPt(rnd(0,PER));dropItem('coffee',q[0],q[1])}}
+  {const MR=magR(),PR=28*(1+.2*pk('magnet'));for(const it of G.items.slice()){it.t+=dt;const dx=P.x-it.x,dy=P.y-12-it.y,d=hyp(dx,dy)||1;
+    if(it.type==='kudos'&&d<MR){const v=Math.min(600,200+(MR-d)*5);it.x+=dx/d*v*dt;it.y+=dy/d*v*dt}
+    if(d<PR){G.items.splice(G.items.indexOf(it),1);collect(it)}}}
   while(G.xp>=G.xpNext){G.xp-=G.xpNext;G.level++;ring(P.x,P.y-12,'#ffd23f',120);burst(P.x,P.y-24,'#ffd23f',16,180);G.xpNext=5+4*G.level;G.pending++}
   for(const f of G.floaters.slice()){f.t+=dt;f.y-=28*dt;if(f.t>1.1)G.floaters.splice(G.floaters.indexOf(f),1)}
   if(G.safety<=0){G.safety=0;endRun(false);return}
-  if(G.pending>0&&!G.paused)openLevelUp()}
+  if((G.pending>0||G.gift>0)&&!G.paused)openLevelUp()}
 function helperStep(h,dt){const G=RUN;h.think-=dt;
   if(h.target&&h.target.dead)h.target=null;
   if(h.kind==='res'&&h.think<=0&&h.target&&!(URG[h.target.type]>=3)){const u=G.tasks.find(k=>URG[k.type]>=3&&!k.claim);if(u){h.target.claim=null;h.target=null}}
@@ -1038,9 +1114,9 @@ function drawTask(k,x,y,t){const f=1-k.age/k.due;const col=k.over?((t*6|0)%2?'#f
   ctx.strokeStyle=col;ctx.beginPath();ctx.arc(x,y,17,-Math.PI/2,-Math.PI/2+Math.PI*2*(k.over?1:clamp(f,0,1)));ctx.stroke();
   if(k.done>0){ctx.strokeStyle='#ffffff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,12.5,-Math.PI/2,-Math.PI/2+Math.PI*2*clamp(k.done/k.work,0,1));ctx.stroke()}
   ctx.drawImage(iconCanvas(TT[k.type].icon),x-12,y-12,24,24)}
-function drawHuman(L,x,y,dir,anim,tag,tagCol){const fr=anim>0?1+(((anim*8)|0)%2):0;ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(x-11,y-3,22,6);
+function drawHuman(L,x,y,dir,anim,tag,tagCol,icon){const fr=anim>0?1+(((anim*8)|0)%2):0;ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(x-11,y-3,22,6);
   ctx.drawImage(sprite(L,dir,fr),x-16,y-42-(fr?1:0),32,44);
-  if(tag){ctx.font='8px PS2P';const w=ctx.measureText(tag).width+8;ctx.fillStyle=tagCol||'#2de2e6';ctx.fillRect(x-w/2,y-58,w,12);ctx.fillStyle='#0b0a1c';ctx.textAlign='center';ctx.fillText(tag,x,y-49)}}
+  if(tag){ctx.font='8px PS2P';const w=ctx.measureText(tag).width+8;ctx.fillStyle=tagCol||'#2de2e6';ctx.fillRect(x-w/2,y-58,w,12);ctx.fillStyle='#0b0a1c';ctx.textAlign='center';ctx.fillText(tag,x,y-49);if(icon)ctx.drawImage(iconCanvas(icon),x-w/2-14,y-59,13,13)}}
 let lastT=performance.now(),uiAcc=0;
 function render(dt,t){
   ctx.setTransform(1,0,0,1,0,0);ctx.imageSmoothingEnabled=false;ctx.fillStyle='#0b0a1c';ctx.fillRect(0,0,cv.width,cv.height);
@@ -1088,6 +1164,8 @@ function render(dt,t){
   if(RUN&&DESK.tasks.length){const n=DESK.tasks.length;DESK.tasks.forEach((k,i)=>{drawTask(k,DESK.bed.x+(i-(n-1)/2)*44,DESK.bed.y-8,ts);
       if(k.forRoom){ctx.font='8px PS2P';ctx.textAlign='center';ctx.fillStyle='#0b0a1c';ctx.fillRect(DESK.bed.x+(i-(n-1)/2)*44-22,DESK.bed.y+14,44,13);ctx.fillStyle='#2de2e6';ctx.fillText(String(k.forRoom.num),DESK.bed.x+(i-(n-1)/2)*44,DESK.bed.y+24)}})}
   // stars
+  if(RUN)for(const it of RUN.items){const I=ITEM[it.type],b=Math.sin(ts*4+it.x*.1)*3,sz=I.sz;ctx.globalAlpha=.32+.12*Math.sin(ts*6+it.y);ctx.fillStyle=I.glow;ctx.beginPath();ctx.arc(it.x,it.y+b,sz*.75,0,7);ctx.fill();
+    ctx.globalAlpha=1;ctx.drawImage(iconCanvas(I.icon),it.x-sz/2,it.y-sz/2+b,sz,sz)}
   if(RUN)for(const o of RUN.orbs){const sz=o.v>=10?24:o.v>=5?19:14,pz=sz+4*Math.sin(ts*8+o.x);ctx.globalAlpha=.35;ctx.fillStyle='#ffd23f';ctx.beginPath();ctx.arc(o.x,o.y,pz*.55,0,7);ctx.fill();ctx.globalAlpha=1;ctx.drawImage(iconCanvas('star2'),o.x-sz/2,o.y-sz/2,sz,sz)}
   // people, sorted by depth
   const people=[];
@@ -1096,7 +1174,8 @@ function render(dt,t){
     for(const n of RUN.npcs){if(n.kind==='md')people.push({y:n.y,draw:()=>drawHuman(n.look,n.x,n.y,n.dir,n.wait>0?0:n.anim,'MD','#e8e8f0')});
       else people.push({y:n.y,draw:()=>{drawEvsCart(n);drawHuman(n.look,n.x,n.y,n.dir,n.phase==='clean'?0:n.anim,'EVS','#5fd3c9')}})}
     for(const r of ROOMS)if(r.active&&r.pt&&r.pt.visitor)people.push({y:r.vis.y,draw:()=>drawHuman(r.pt.visitor,r.vis.x,r.vis.y,'down',0)});
-    people.push({y:P.y,draw:()=>drawHuman(myLook(),P.x,P.y,P.dir,P.anim,(SAVE.look.name||tr('you')).toUpperCase(),'#ffffff')})}
+    people.push({y:P.y,draw:()=>{drawHuman(myLook(),P.x,P.y,P.dir,P.anim,(SAVE.look.name||tr('you')).toUpperCase(),'#ffffff',SAVE.reel?reelIcon(SAVE.reel):null);
+      if(RUN.buffT>0){ctx.globalAlpha=.55+.45*Math.sin(ts*8);ctx.drawImage(iconCanvas('coffee'),P.x+12,P.y-46,14,14);ctx.globalAlpha=1}}})}
   else{idleCrew(ts).forEach(n=>people.push({y:n.y,draw:()=>drawHuman(n.look,n.x,n.y,n.dir,n.anim)}))}
   people.sort((a,b)=>a.y-b.y).forEach(p=>p.draw());
   if(RUN){for(const q of RUN.rings){const f=q.t/.6;ctx.globalAlpha=1-f;ctx.strokeStyle=q.c;ctx.lineWidth=5*(1-f)+1;ctx.beginPath();ctx.arc(q.x,q.y,q.max*f,0,Math.PI*2);ctx.stroke()}
@@ -1143,7 +1222,7 @@ function drawMini(){const sx=mini.width/WW,sy=mini.height/WH;mg.setTransform(1,0
 const hud=$('#hud');let toastTimer=0;
 function toast(msg,kind){const el=$('#toast');el.textContent=msg;el.className='show'+(kind?' '+kind:'');toastTimer=kind==='alert'?4.2:3.2}
 function updHud(dt){if(!RUN)return;toastTimer-=dt;if(toastTimer<=0)$('#toast').className='';
-  $('#clock').textContent=clockStr(gmNow());$('#shiftfill').style.width=(100*RUN.t/SHIFT_SEC).toFixed(1)+'%';
+  $('#clock').textContent=clockStr(gmNow());$('#kudosHud').textContent=RUN.kudos?'+'+RUN.kudos+' KUDOS':'';$('#shiftfill').style.width=(100*RUN.t/SHIFT_SEC).toFixed(1)+'%';
   const sf=RUN.safety/RUN.safetyMax;$('#safefill').style.width=(100*sf).toFixed(1)+'%';$('#safefill').style.background=sf>.5?'var(--green)':sf>.25?'var(--gold)':'var(--red)';
   $('#safetxt').textContent=Math.ceil(RUN.safety);$('#score').textContent=RUN.score.toLocaleString();
   $('#xpfill').style.width=(100*RUN.xp/RUN.xpNext).toFixed(1)+'%';$('#lvl').textContent='LV '+RUN.level;
@@ -1153,12 +1232,12 @@ function renderUps(){const box=$('#ups');box.innerHTML='';if(!RUN)return;for(con
 let SCREEN='title';
 function show(id){SCREEN=id;$$('.screen').forEach(s=>{s.hidden=s.id!=='s-'+id});hud.hidden=!(RUN&&!RUN.over&&(id==='none'||id==='level'||id==='pause'));
   const first=id!=='none'&&$('#s-'+id+' button');if(first)setTimeout(()=>{try{first.focus({preventScroll:true})}catch(e){}},30)}
-function titleScreen(){$('#b-lb').hidden=!LB_ON;drawSpriteInto($('#titleSprite'),myLook(),'down',0);const n=NURSES.find(n=>n.id===SAVE.nurse)||NURSES[0];
+function titleScreen(){$('#b-lb').hidden=!LB_ON;$('#b-perks').textContent=tr('perks')+' \u00b7 '+tr('kudos',{n:(SAVE.kudos||0).toLocaleString()});drawSpriteInto($('#titleSprite'),myLook(),'down',0);const n=NURSES.find(n=>n.id===SAVE.nurse)||NURSES[0];
   $('#titleNurse').textContent=(SAVE.look.name?SAVE.look.name+' · ':'')+tr('n_'+n.id);
   $('#titleCareer').textContent=tr('career',{n:SAVE.careerXp.toLocaleString()})+(SAVE.bestScore?' · '+tr('best',{n:SAVE.bestScore.toLocaleString()}):'');
   $('#b-en').setAttribute('aria-pressed',String(LANG==='en'));$('#b-es').setAttribute('aria-pressed',String(LANG==='es'));soundLabels();show('title')}
 function soundLabels(){$('#b-sound').textContent=tr(SAVE.sound?'sound_on':'sound_off');$('#b-sound2').textContent=$('#b-sound').textContent;$('#b-sound').setAttribute('aria-pressed',String(SAVE.sound))}
-function setLang(l){LANG=l;SAVE.lang=l;persist();applyText();if(FLOOR)drawFloor();if(SCREEN==='title')titleScreen();if(SCREEN==='locker')lockerScreen();if(SCREEN==='howto')howtoScreen();renderUps()}
+function setLang(l){LANG=l;SAVE.lang=l;persist();applyText();if(FLOOR)drawFloor();if(SCREEN==='title')titleScreen();if(SCREEN==='locker')lockerScreen();if(SCREEN==='howto')howtoScreen();if(SCREEN==='perks')perksScreen();renderUps()}
 let lockerAnim=0;
 function lockerScreen(){const L=SAVE.look;
   // nurses
@@ -1175,34 +1254,42 @@ function lockerScreen(){const L=SAVE.look;
   const st=$('#optStyle');st.innerHTML='';STYLES.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=tr('st_'+s);b.setAttribute('aria-pressed',String(L.style===i));
     b.addEventListener('click',()=>{L.style=i;persist();sfx('click');lockerScreen()});st.appendChild(b)});
   const sc=scrubById(L.scrub);$('#scrubHint').textContent=tr('scrub_ok',{s:tr('c_'+sc.id)});
+  $('#reelTitle').textContent=tr('reels',{n:SAVE.reels.length,m:REELS.length});const rbx=$('#optReel');rbx.innerHTML='';
+  {const b=document.createElement('button');b.type='button';b.className='reel';b.textContent=tr('reel_none');b.setAttribute('aria-pressed',String(!SAVE.reel));b.addEventListener('click',()=>{SAVE.reel='';persist();sfx('click');lockerScreen()});rbx.appendChild(b)}
+  for(const [id,ic] of REELS){const own=SAVE.reels.includes(id),b=document.createElement('button');b.type='button';b.className='reel'+(own?'':' locked');b.setAttribute('aria-pressed',String(SAVE.reel===id));
+    b.setAttribute('aria-label',own?tr('rl_'+id):tr('reel_locked'));b.title=own?tr('rl_'+id):tr('reel_locked');const c=document.createElement('canvas');iconInto(c,ic);b.appendChild(c);
+    b.addEventListener('click',()=>{if(!own)return;SAVE.reel=id;persist();sfx('click');lockerScreen()});rbx.appendChild(b)}
   const ni=$('#nameIn');if(document.activeElement!==ni)ni.value=L.name||'';
   const n=NURSES.find(n=>n.id===SAVE.nurse)||NURSES[0];$('#lockerName').textContent=(L.name||tr('you'));$('#lockerPerk').textContent=tr('n_'+n.id);
   $('#lockerCareer').textContent=tr('career',{n:SAVE.careerXp.toLocaleString()});drawSpriteInto($('#lockerSprite'),myLook(),'down',0);
   if(SCREEN!=='locker')show('locker')}
 function showScrubHint(i){const s=SCRUBS[i];$('#scrubHint').textContent=tr('scrub_locked',{s:tr('c_'+s.id),n:s.xp.toLocaleString()})}
-function howtoScreen(){const ul=$('#howList');ul.innerHTML='';[['move','h1'],['heart','h2'],['siren','h3'],['phone','h7'],['mask','h8'],['star2','h4'],['brain','h5'],['star','h6']].forEach(([ic,k])=>{
+function howtoScreen(){const ul=$('#howList');ul.innerHTML='';[['move','h1'],['heart','h2'],['siren','h3'],['phone','h7'],['mask','h8'],['star2','h4'],['basket','h9'],['brain','h5'],['star','h6']].forEach(([ic,k])=>{
   const li=document.createElement('li');const c=document.createElement('canvas');iconInto(c,ic);li.appendChild(c);const sp=document.createElement('span');sp.textContent=tr(k);li.appendChild(sp);ul.appendChild(li)});
   const lg=$('#legend');lg.innerHTML='';for(const k in TT){const d=document.createElement('div');const c=document.createElement('canvas');iconInto(c,TT[k].icon);d.appendChild(c);const sp=document.createElement('span');sp.textContent=tr('k_'+k);d.appendChild(sp);lg.appendChild(d)}
   if(SCREEN!=='howto')show('howto')}
 let OFFER=[];
-function offers(){const U=RUN.up;const bag=UP.filter(u=>U[u.id]<u.max);const out=[];
-  while(out.length<3&&bag.length){const tot=bag.reduce((s,u)=>s+u.w,0);let x=Math.random()*tot,i=0;for(;i<bag.length-1;i++){x-=bag[i].w;if(x<=0)break}out.push(bag.splice(i,1)[0])}
+function offers(){const U=RUN.up,N=3+(pk('choice')?1:0);const bag=UP.filter(u=>U[u.id]<u.max);const out=[];
+  while(out.length<N&&bag.length){const tot=bag.reduce((s,u)=>s+u.w,0);let x=Math.random()*tot,i=0;for(;i<bag.length-1;i++){x-=bag[i].w;if(x<=0)break}out.push(bag.splice(i,1)[0])}
   const TEAM=['rn','cna','res'];
   if(RUN.helpers.length<2&&!out.some(u=>TEAM.includes(u.id))){const t=UP.filter(u=>TEAM.includes(u.id)&&U[u.id]<u.max);if(t.length)out[(Math.random()*out.length)|0]=pick(t)}
-  while(out.length<3)out.push(SNACK);return out}
+  while(out.length<N)out.push(SNACK);return out}
 let offerAt=0;
-function openLevelUp(){RUN.paused=true;sfx('level');buzz(25);offerAt=performance.now();OFFER=offers();const box=$('#cards');box.innerHTML='';
+function openLevelUp(quiet){RUN.paused=true;if(!quiet){sfx('level');buzz(25)}offerAt=performance.now();OFFER=offers();const box=$('#cards');box.innerHTML='';box.style.setProperty('--n',OFFER.length);
+  const gift=RUN.gift>0;$('#lvTitle').textContent=tr(gift?'gift_title':'levelup');$('#lvSub').textContent=tr(gift?'gift_sub':'choose');
+  const rb=$('#b-reroll');rb.hidden=!(RUN.rerolls>0);rb.textContent=tr('reroll',{n:RUN.rerolls});
   OFFER.forEach((u,i)=>{const lv=u.id==='snack'?0:RUN.up[u.id];const b=document.createElement('button');b.type='button';b.className='card';
     b.innerHTML='<div class="ct"><canvas></canvas><div><b></b><div class="lv"></div></div></div><p></p><span class="k"></span>';iconInto(b.querySelector('canvas'),u.icon);
     b.querySelector('b').textContent=tr('u_'+u.id);b.querySelector('.lv').textContent=u.id==='snack'?'':lv?tr('lv',{n:lv+1}):tr('lv_new');
     b.querySelector('p').textContent=u.id==='res'?(lv?tr('d_res'):tr('d_res1')):tr('d_'+u.id);b.querySelector('.k').textContent=tr('key',{n:i+1});
     b.addEventListener('click',()=>pickCard(i));box.appendChild(b)});show('level')}
-function pickCard(i,force){if(SCREEN!=='level'||!OFFER[i])return;if(!force&&performance.now()-offerAt<350)return;applyUp(OFFER[i].id);sfx('click');RUN.pending--;if(RUN.pending>0){openLevelUp();return}RUN.paused=false;show('none')}
+function pickCard(i,force){if(SCREEN!=='level'||!OFFER[i])return;if(!force&&performance.now()-offerAt<350)return;applyUp(OFFER[i].id);sfx('click');if(RUN.gift>0)RUN.gift--;else RUN.pending--;if(RUN.pending>0||RUN.gift>0){openLevelUp();return}RUN.paused=false;show('none')}
 function pause(on){if(!RUN||RUN.over)return;if(SCREEN==='level')return;RUN.paused=on;if(on){soundLabels();show('pause')}else show('none')}
 function endRun(survived,quit){const G=RUN;G.over=true;G.paused=false;G.survived=!!survived;lbSent=false;wake(false);$('#hint').hidden=true;
   const before={sc:SCRUBS.filter(scrubOpen).map(s=>s.id),nu:NURSES.filter(nurseOpen).map(n=>n.id)};
   if(survived)G.score+=500+Math.round(G.safety*10);
-  const xpGain=Math.round(G.score/20);
+  const xpGain=Math.round(G.score/20);if(survived)giveReel();
+  const kudosGain=Math.round((G.score/60+(survived?40:0)+G.kudos)*(1+.1*pk('greed')));SAVE.kudos=(SAVE.kudos||0)+kudosGain;
   SAVE.careerXp+=xpGain;SAVE.strokes+=G.stats.stroke;SAVE.dcs+=G.stats.dc;SAVE.adms+=G.stats.adm;if(survived)SAVE.shifts++;
   SAVE.bestLevel=Math.max(SAVE.bestLevel,G.level);SAVE.bestScore=Math.max(SAVE.bestScore,G.score);persist();
   const newSc=SCRUBS.filter(s=>scrubOpen(s)&&!before.sc.includes(s.id)),newNu=NURSES.filter(n=>nurseOpen(n)&&!before.nu.includes(n.id));
@@ -1211,11 +1298,12 @@ function endRun(survived,quit){const G=RUN;G.over=true;G.paused=false;G.survived
   $('#rTitle').textContent=tr(survived?'r_done':quit?'r_quit':'r_fail');$('#rSub').textContent=survived?tr('r_sub_done'):tr(quit?'r_sub_quit':'r_sub_fail',{t:clockStr(gmNow())});
   const gr=$('#rGrade');gr.textContent=grade;gr.style.color=grade==='A'?'var(--green)':grade==='B'?'var(--cyan)':grade==='C'?'var(--gold)':grade==='F'?'var(--red)':'var(--muted)';
   const rows=[['s_tasks',S.done],['s_ontime',on+'%'],['s_neuro',nt?non+'%':'–'],['s_dc',S.dc],['s_adm',S.adm],['s_stroke',S.stroke+(S.strokeMissed?' / '+(S.stroke+S.strokeMissed):'')],
-    ['s_falls',S.falls],['s_level',G.level],['s_team',1+G.helpers.length],['s_score',G.score.toLocaleString(),1],['s_xp','+'+xpGain.toLocaleString(),1]];
+    ['s_falls',S.falls],['s_level',G.level],['s_team',1+G.helpers.length],['s_score',G.score.toLocaleString(),1],['s_xp','+'+xpGain.toLocaleString(),1],['s_kudos','+'+kudosGain.toLocaleString(),1]];
   const box=$('#rStats');box.innerHTML='';for(const [k,v,hi] of rows){const d=document.createElement('div');d.className='stat'+(hi?' hi':'');d.innerHTML='<span></span><b></b>';d.querySelector('span').textContent=tr(k);d.querySelector('b').textContent=v;box.appendChild(d)}
   const ub=$('#rUnlocks');ub.innerHTML='';for(const s of newSc){const d=document.createElement('div');d.className='unl';d.innerHTML='<i></i><span></span>';d.querySelector('i').style.background=s.c;d.querySelector('span').textContent=tr('c_'+s.id);ub.appendChild(d)}
   for(const n of newNu){const d=document.createElement('div');d.className='unl';d.innerHTML='<span></span>';d.querySelector('span').textContent='★ '+tr('n_'+n.id);ub.appendChild(d)}
-  $('#rUnlockWrap').hidden=!(newSc.length||newNu.length);sfx(survived?'level':'miss');
+  for(const id of G.newReels){const d=document.createElement('div');d.className='unl';d.innerHTML='<canvas width="12" height="12" style="width:20px;height:20px;image-rendering:pixelated"></canvas><span></span>';iconInto(d.querySelector('canvas'),reelIcon(id));d.querySelector('span').textContent=tr('rl_'+id);ub.appendChild(d)}
+  $('#rUnlockWrap').hidden=!(newSc.length||newNu.length||G.newReels.length);sfx(survived?'level':'miss');
   if(LB_ON&&G.score>0)openNameEntry(survived,quit);else{lbPrep();show('report')}}
 let TOUCH=false;try{TOUCH=matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0}catch(e){}
 let hintT=0,hintGone=0;
@@ -1279,6 +1367,28 @@ function npcStep(n,dt){
     else if(moveAlong(n,dt,125))n.gone=true}}
 function drawEvsCart(n){const x=n.x+(n.dir==='left'?-20:12),y=n.y-14;ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(x-1,y+12,18,4);ctx.fillStyle='#5a6178';ctx.fillRect(x,y,16,12);
   ctx.fillStyle='#ffd23f';ctx.fillRect(x+2,y+2,7,7);ctx.fillStyle='#9fd3ff';ctx.fillRect(x+3,y+3,5,3);ctx.fillStyle='#c9ced8';ctx.fillRect(x+11,y-10,2,14)}
+/* ================= pickups and badge reels ================= */
+function dropItem(type,x,y,v){if(RUN&&RUN.items.length<40)RUN.items.push({type,x,y,v:v||0,t:0})}
+function collect(it){const G=RUN;sfx('xp');
+  if(it.type==='kudos'){G.kudos+=it.v;floater(it.x,it.y-10,tr('f_kudos',{n:it.v}),'#ffd23f')}
+  if(it.type==='coffee'){G.safety=Math.min(G.safetyMax,G.safety+10);G.buffT=15;floater(it.x,it.y-10,tr('f_coffee'),'#ffb27a');burst(it.x,it.y,'#ffb27a',12)}
+  if(it.type==='basket'){G.gift++;floater(it.x,it.y-10,tr('f_basket'),'#ff8fc4');burst(it.x,it.y,'#ff8fc4',16);if(Math.random()<.3)giveReel()}
+  if(it.type==='clip'){const m=1+.1*pk('growth');for(const o of G.orbs)G.xp+=o.v*m;G.orbs.length=0;floater(it.x,it.y-10,tr('f_clip'),'#2de2e6');ring(P.x,P.y-12,'#2de2e6',170)}}
+function giveReel(){const left=REELS.filter(r=>!SAVE.reels.includes(r[0]));if(!left.length)return null;const r=pick(left)[0];SAVE.reels.push(r);if(!SAVE.reel)SAVE.reel=r;persist();
+  if(RUN)RUN.newReels.push(r);toast(tr('reel_new',{r:tr('rl_'+r)}));return r}
+let perksFrom='title';
+function perksScreen(msg){const list=$('#pkList');list.innerHTML='';$('#pkKudos').textContent=tr('kudos',{n:(SAVE.kudos||0).toLocaleString()});
+  for(const Q of PERKS){const lv=pk(Q.id),maxed=lv>=Q.max,cost=maxed?0:Q.cost[lv];const d=document.createElement('div');d.className='perk'+(maxed?' maxed':'');
+    d.innerHTML='<div class="pt"><canvas></canvas><div><b></b><div class="pips"></div></div></div><p></p><button class="btn" type="button"></button>';
+    iconInto(d.querySelector('canvas'),Q.icon);d.querySelector('b').textContent=tr('p_'+Q.id);d.querySelector('p').textContent=tr('pd_'+Q.id);
+    const pips=d.querySelector('.pips');for(let i=0;i<Q.max;i++){const e=document.createElement('i');if(i<lv)e.className='on';pips.appendChild(e)}
+    const b=d.querySelector('button');if(maxed){b.textContent=tr('pk_max');b.disabled=true}
+    else{b.textContent=tr('pk_buy',{n:cost});const short=cost-(SAVE.kudos||0);b.disabled=short>0;if(short>0)b.title=tr('pk_need',{n:short})}
+    b.addEventListener('click',()=>buyPerk(Q.id));list.appendChild(d)}
+  $('#pkMsg').textContent=msg||'';if(SCREEN!=='perks')show('perks')}
+function buyPerk(id){const Q=PERKS.find(x=>x.id===id),lv=pk(id);if(!Q||lv>=Q.max)return;const cost=Q.cost[lv];if((SAVE.kudos||0)<cost)return;
+  SAVE.kudos-=cost;SAVE.perks[id]=lv+1;persist();sfx('level');perksScreen(tr('pk_bought',{p:tr('p_'+id)}))}
+function openPerks(){perksFrom=SCREEN==='report'?'report':'title';ensureAudio();sfx('click');perksScreen()}
 function begin(){if(!FLOOR)return;ensureAudio();startRun(SAVE.nurse);renderUps();show('none');updHud(0);showHint();wake(true)}
 
 /* ================= audio ================= */
@@ -1292,7 +1402,7 @@ function sfx(n){try{SFX[n]&&SFX[n]()}catch(e){}}
 
 /* ================= input ================= */
 window.addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;keys.add(e.code);
-  if(SCREEN==='level'&&/^Digit[123]$/.test(e.code)){pickCard(+e.code.slice(5)-1);e.preventDefault()}
+  if(SCREEN==='level'&&/^Digit[1-4]$/.test(e.code)){pickCard(+e.code.slice(5)-1);e.preventDefault()}
   else if((e.code==='Escape'||e.code==='KeyP')&&RUN&&!RUN.over){pause(SCREEN!=='pause');e.preventDefault()}
   if(e.code.startsWith('Arrow')&&SCREEN==='none')e.preventDefault()});
 window.addEventListener('keyup',e=>keys.delete(e.code));
@@ -1311,7 +1421,10 @@ cv.addEventListener('contextmenu',e=>e.preventDefault());
 $('#b-start').addEventListener('click',()=>{sfx('click');begin()});$('#b-lockerStart').addEventListener('click',begin);$('#b-howStart').addEventListener('click',begin);$('#b-again').addEventListener('click',begin);
 $('#b-locker').addEventListener('click',()=>{ensureAudio();sfx('click');lockerScreen()});$('#b-rLocker').addEventListener('click',lockerScreen);
 $('#b-howto').addEventListener('click',()=>{ensureAudio();sfx('click');howtoScreen()});
-$('#b-lb').addEventListener('click',()=>{ensureAudio();sfx('click');lbScreen()});$('#b-lbBack').addEventListener('click',titleScreen);
+$('#b-lb').addEventListener('click',()=>{ensureAudio();sfx('click');lbScreen()});
+$('#b-perks').addEventListener('click',openPerks);$('#b-rPerks').addEventListener('click',openPerks);
+$('#b-pkBack').addEventListener('click',()=>{if(perksFrom==='report'&&RUN&&RUN.over)show('report');else titleScreen()});
+$('#b-reroll').addEventListener('click',()=>{if(!RUN||SCREEN!=='level'||RUN.rerolls<=0)return;RUN.rerolls--;sfx('click');openLevelUp(true)});$('#b-lbBack').addEventListener('click',titleScreen);
 $('#b-lbSend').addEventListener('click',lbSend);$('#lbName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbSend()}});
 $('#b-nmSend').addEventListener('click',nmSend);$('#b-nmSkip').addEventListener('click',goReport);$('#nmName').addEventListener('input',nmPreview);
 $('#nmName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();nmSend()}else if(e.key==='Escape'){e.preventDefault();goReport()}});
@@ -1331,11 +1444,11 @@ function frame(now){const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
 
 /* ================= test hooks ================= */
 window.SS={start:n=>{startRun(n||SAVE.nurse);renderUps();show('none')},state:()=>RUN&&{t:RUN.t,clock:clockStr(gmNow()),safety:RUN.safety,level:RUN.level,xp:RUN.xp,score:RUN.score,tasks:RUN.tasks.length,
-  helpers:RUN.helpers.map(h=>h.kind),up:Object.assign({},RUN.up),stats:Object.assign({},RUN.stats),active:RUN.activeN,over:RUN.over,screen:SCREEN,pending:RUN.pending,orbs:RUN.orbs.length},
+  helpers:RUN.helpers.map(h=>h.kind),up:Object.assign({},RUN.up),stats:Object.assign({},RUN.stats),active:RUN.activeN,over:RUN.over,screen:SCREEN,pending:RUN.pending,orbs:RUN.orbs.length,kudos:RUN.kudos,gift:RUN.gift,rerolls:RUN.rerolls,buff:RUN.buffT,safetyMax:RUN.safetyMax,items:RUN.items.length},end:sv=>endRun(!!sv),
   move:(x,y)=>{TEST_MOVE=x==null?null:[x,y]},auto:on=>{AUTO=!!on},pick:i=>pickCard(i,true),offer:()=>OFFER.map(u=>u.id),
   step:(sec,dt)=>{dt=dt||1/30;let n=Math.round(sec/dt);while(n-->0&&RUN&&!RUN.over){if(RUN.paused){if(SCREEN==='level'&&window.SS.autopick){window.SS.autopick()}else break}update(dt)}return window.SS.state()},
   player:()=>({x:P.x,y:P.y,focus:P.focus&&P.focus.type}),save:()=>SAVE,cam:()=>({x:cam.x,y:cam.y,zoom:ZOOM}),rooms:()=>ROOMS.map(r=>({n:r.num,a:r.active,s:r.state,t:r.tasks.map(k=>k.type)})),
-  teleport:(x,y)=>{P.x=x;P.y=y},lang:setLang,canStand:(x,y)=>canStand(x,y),route:(a,b,c,d)=>route(a,b,c,d),floor:()=>FLOOR&&FLOOR.toDataURL(),order:()=>RUN&&RUN.order.slice(0,6).map(r=>r.num),desk:()=>DESK.tasks.map(k=>k.forRoom&&k.forRoom.num),iso:()=>ROOMS.filter(r=>r.pt&&r.pt.iso).map(r=>r.num+':'+r.pt.iso)};
+  teleport:(x,y)=>{P.x=x;P.y=y},lang:setLang,canStand:(x,y)=>canStand(x,y),route:(a,b,c,d)=>route(a,b,c,d),floor:()=>FLOOR&&FLOOR.toDataURL(),order:()=>RUN&&RUN.order.slice(0,6).map(r=>r.num),desk:()=>DESK.tasks.map(k=>k.forRoom&&k.forRoom.num),items:()=>RUN&&RUN.items.map(i=>i.type),drop:(t,x,y,v)=>dropItem(t,x,y,v),iso:()=>ROOMS.filter(r=>r.pt&&r.pt.iso).map(r=>r.num+':'+r.pt.iso)};
 
 /* ================= boot ================= */
 function boot(data){SAVE=loadSave(data||{});LANG=SAVE.lang==='es'?'es':'en';applyText();resize();window.addEventListener('resize',resize);
