@@ -961,7 +961,10 @@ const PERKS=[{id:'startRN',max:2,cost:[120,300],icon:'steth'},{id:'startCNA',max
 const REELS=[['heart','heart'],['coffee','coffee'],['star','star'],['brain','brain'],['bell','bell'],['pill','pill'],['bolt','bolt'],['shoe','shoe'],['donut','snack'],['phone','phone'],['mask','mask'],['steth','steth']];
 const ITEM={kudos:{icon:'kudos',sz:18,glow:'#ffd23f'},coffee:{icon:'coffee',sz:22,glow:'#ffb27a'},basket:{icon:'basket',sz:24,glow:'#ff8fc4'},clip:{icon:'clip',sz:20,glow:'#2de2e6'}};
 const pk=id=>(SAVE&&SAVE.perks&&SAVE.perks[id])||0, luckMul=()=>1+.2*pk('luck'), reelIcon=id=>{const r=REELS.find(x=>x[0]===id);return r?r[1]:null};
-const SHIFT_SEC=420, GPS=720/SHIFT_SEC; // game minutes per real second
+const SHIFT_SEC=240, GPS=720/SHIFT_SEC; // game minutes per real second; the fair demo is a 4-minute shift
+// TIME<1 squeezes the 12 hours into less real time. WORK scales how busy each real second is (LOAD thins the work per game hour to match),
+// XPN scales the XP needed per level, DUE stretches task timers and DRAIN scales safety loss. The fair demo is short and gentler for first-time players.
+const TIME=SHIFT_SEC/420, WORK=.9, LOAD=TIME*WORK, XPN=.75, DUE=1.5, DRAIN=.6;
 const CALL_RATE=0.006, ALARM_RATE=0.0018;
 
 /* ================= run state ================= */
@@ -979,7 +982,7 @@ function newPatient(isNew,room){return {id:++pid,iso:isoFor(room),visitor:Math.r
   blanket:pick(['#a9d1f5','#c6e7c9','#f5d0a9','#d7c8f2','#f2c3cf'])}}
 function startRun(nurseId){
   const nurse=NURSES.find(n=>n.id===nurseId)||NURSES[0];
-  RUN={t:0,ev:[],tasks:[],orbs:[],floaters:[],helpers:[],transports:[],parts:[],rings:[],npcs:[],tid:0,activeN:0,safety:100,safetyMax:100,xp:0,level:1,xpNext:6,pending:0,
+  RUN={t:0,ev:[],tasks:[],orbs:[],floaters:[],helpers:[],transports:[],parts:[],rings:[],npcs:[],tid:0,activeN:0,safety:100,safetyMax:100,xp:0,level:1,xpNext:Math.max(3,Math.round(6*XPN)),pending:0,
     up:{know:0,dc:0,adm:0,rn:0,cna:0,res:0,neuro:0,shoes:0,presence:0,magnet:0,huddle:0,ppe:0},score:0,over:false,paused:false,nurse:nurse.id,
     stats:{done:0,onTime:0,late:0,missed:0,neuroDone:0,neuroOn:0,neuroMissed:0,dc:0,adm:0,stroke:0,strokeMissed:0,rapid:0,falls:0},lastXpSfx:0,esHint:false,lastWave:'',isoSeen:{}};
   pid=0;
@@ -991,21 +994,21 @@ function startRun(nurseId){
   activate(6,true);
   ROOMS.forEach(r=>{if(r.pt)schedulePatient(r,-1)});
   const first=RUN.order.slice(0,RUN.activeN).filter(r=>r.pt);
-  first.forEach((r,i)=>sched(3+i*7+rnd(0,3),()=>addTask(r,i%3===1?'pain':'call')));
+  first.forEach((r,i)=>sched((3+i*7+rnd(0,3))/TIME,()=>addTask(r,i%3===1?'pain':'call')));
   for(const [w,key] of [[60,'t_vitals'],[300,'t_vitals'],[540,'t_vitals'],[120,'t_meds'],[360,'t_meds'],[600,'t_meds']])
     sched(w,()=>toast(tr(key,{c:clockStr(w)})));
   sched(660,()=>toast(tr('t_last')));
-  for(let i=0;i<10;i++)sched(rnd(180,480),dcOrder);
-  let nx=240+rnd(0,20);while(nx<690){sched(nx,admit);nx+=rnd(28,42)}
+  for(let i=0;i<Math.round(10*LOAD);i++)sched(rnd(180,480),dcOrder);
+  let nx=240+rnd(0,20);while(nx<690){sched(nx,admit);nx+=rnd(28,42)/LOAD}
   [[150,300],[330,480],[510,690]].forEach(([a,b])=>sched(rnd(a,b),()=>urgent('stroke')));
-  [[200,420],[450,680]].forEach(([a,b])=>sched(rnd(a,b),()=>urgent('rapid')));
+  (LOAD<1?[[300,600]]:[[200,420],[450,680]]).forEach(([a,b])=>sched(rnd(a,b),()=>urgent('rapid')));
   P.x=START.x;P.y=START.y;P.dir='down';P.focus=null;spawnDocs();
   for(const k in nurse.perk){for(let i=0;i<nurse.perk[k];i++)applyUp(k,true)}
   // permanent perks bought with kudos
   for(let i=0;i<pk('startRN');i++)addHelper('rn',true);for(let i=0;i<pk('startCNA');i++)addHelper('cna',true);
   if(pk('startRes')&&!RUN.up.res){RUN.up.res=1;addHelper('res',true)}
   RUN.safetyMax+=10*pk('safety');RUN.safety=RUN.safetyMax;RUN.rerolls=pk('reroll');RUN.pending+=pk('headstart');
-  RUN.gift=0;RUN.kudos=0;RUN.buffT=0;RUN.items=[];RUN.coffeeT=rnd(35,60);RUN.newReels=[];
+  RUN.gift=0;RUN.kudos=0;RUN.buffT=0;RUN.items=[];RUN.coffeeT=rnd(35,60)*TIME;RUN.newReels=[];
   cam.x=P.x;cam.y=P.y;
   SAVE.runs++;persist();
 }
@@ -1013,8 +1016,8 @@ function activate(n,quiet){const prev=RUN.activeN;RUN.activeN=Math.min(36,RUN.ac
   if(!quiet)toast(tr('t_assign',{n:RUN.activeN-prev,m:RUN.activeN}));else toast(tr('t_huddle',{n:RUN.activeN}))}
 function schedulePatient(r,from){const id=r.pt.id;const ok=()=>r.pt&&r.pt.id===id;
   // q4h vitals; neuro patients get vitals + neuro check together
-  for(const w of [60,300,540])if(w>from+20)sched(w+rnd(0,70),()=>{if(ok())addTask(r,r.pt.neuro?'neuro':'vitals')});
-  for(const [w,p] of [[120,.8],[360,.45],[600,.8]])if(w>from+20&&Math.random()<p)sched(w+rnd(0,60),()=>{if(ok())addTask(r,'meds')})}
+  for(const w of [60,300,540])if(w>from+20&&(LOAD>=1||Math.random()<LOAD))sched(w+rnd(0,70),()=>{if(ok())addTask(r,r.pt.neuro?'neuro':'vitals')});
+  for(const [w,p] of [[120,.8],[360,.45],[600,.8]])if(w>from+20&&Math.random()<p*LOAD)sched(w+rnd(0,60),()=>{if(ok())addTask(r,'meds')})}
 function dcOrder(){const c=ROOMS.filter(r=>r.active&&r.state==='occ'&&r.pt&&!r.pt.dc&&!r.pt.isNew&&!r.tasks.some(k=>k.type==='stroke'||k.type==='rapid'));
   if(!c.length)return;const r=pick(c);r.pt.dc=true;const k=addTask(r,'dc',{force:true});if(k){toast(tr('t_dcorder',{r:r.num}));
     if(r.pt.es&&!upLv('dc')&&!RUN.esHint){RUN.esHint=true;setTimeout(()=>toast(tr('t_es')),2600)}}}
@@ -1026,7 +1029,7 @@ function urgent(type){let c=ROOMS.filter(r=>r.active&&r.state==='occ'&&r.pt&&!r.
   if(addTask(r,type,{force:true})){toast(tr(type==='stroke'?'t_stroke':'t_rapid',{r:r.num}),'alert');sfx('siren');buzz([90,60,90]);RUN.flash=1.2;ring(r.bed.x,r.bed.y,type==='stroke'?'#9b5cff':'#ff4d5e',150)}}
 function addTask(r,type,o){o=o||{};if(!RUN)return null;if(!r.active||r.state!=='occ'||!r.pt)return null;if(!r.desk&&r.tasks.some(k=>k.type===type))return null;
   if(r.tasks.length>=3&&!o.force)return null;const d=TT[type];
-  const k={id:++RUN.tid,type,room:r,work:d.work*(type==='dc'&&r.pt.es&&!upLv('dc')?1.5:1),done:0,age:0,due:d.due,over:false,claim:null,dead:false};
+  const k={id:++RUN.tid,type,room:r,work:d.work*(type==='dc'&&r.pt.es&&!upLv('dc')?1.5:1),done:0,age:0,due:d.due*DUE,over:false,claim:null,dead:false};
   r.tasks.push(k);RUN.tasks.push(k);if(type==='alarm')sfx('alarm');return k}
 function removeTask(k){k.dead=true;const r=k.room;r.tasks.splice(r.tasks.indexOf(k),1);RUN.tasks.splice(RUN.tasks.indexOf(k),1);if(k.claim)k.claim.target=null;if(P.focus===k)P.focus=null}
 function completeTask(k){const G=RUN,d=TT[k.type],onTime=!k.over,r=k.room;removeTask(k);
@@ -1044,7 +1047,7 @@ function completeTask(k){const G=RUN,d=TT[k.type],onTime=!k.over,r=k.room;remove
   if(k.type==='adm'){G.stats.adm++;if(r.pt)r.pt.isNew=false;floater(r.bed.x,r.bed.y-70,tr('f_adm'),'#2de2e6')}
   if(k.type==='report'&&k.forRoom){sendAdmission(k.forRoom);toast(tr('t_onway',{r:k.forRoom.num}))}
   if(k.type==='stroke'){G.stats.stroke++;if(r.pt){r.pt.neuro=true;const id=r.pt.id;for(const d of [60,120,180])sched(gmNow()+d,()=>{if(r.pt&&r.pt.id===id)addTask(r,'neuro')});setTimeout(()=>{if(RUN===G&&!G.over)toast(tr('t_neuro',{r:r.num}))},1800)}}if(k.type==='rapid')G.stats.rapid++}
-function expire(k){const G=RUN,d=TT[k.type],r=k.room;removeTask(k);G.stats.missed++;G.safety-=d.hit;G.score=Math.max(0,G.score-d.xp*10);
+function expire(k){const G=RUN,d=TT[k.type],r=k.room;removeTask(k);G.stats.missed++;G.safety-=d.hit*DRAIN;G.score=Math.max(0,G.score-d.xp*10);
   if(k.type==='neuro')G.stats.neuroMissed++;if(k.type==='stroke')G.stats.strokeMissed++;
   if(k.type==='alarm'){G.stats.falls++;floater(r.bed.x,r.bed.y-48,tr('f_fall'),'#ff4d5e');toast(tr('t_fall',{r:r.num}),'bad');buzz(140)}
   else{floater(r.bed.x,r.bed.y-48,tr('f_missed'),'#ff4d5e');burst(r.bed.x,r.bed.y-36,'#ff4d5e',8);if(URG[k.type]>=2)toast(tr('t_missed',{k:tr('k_'+k.type),r:r.num}),'bad')}
@@ -1099,8 +1102,8 @@ function update(dt){
   while(G.ev.length&&G.ev[0].at<=gm){const e=G.ev.shift();e.fn()}
   const dgm=dt*GPS,ramp=1+gm/800;
   for(const r of ROOMS){if(!r.active)continue;if(r.state==='evs'&&gm>=r.evsUntil)r.state='empty';if(r.state!=='occ')continue;
-    if(Math.random()<CALL_RATE*dgm*ramp)addTask(r,'call');if(r.pt.fall&&Math.random()<ALARM_RATE*dgm*ramp)addTask(r,'alarm')}
-  for(const k of G.tasks.slice()){k.age+=dt;if(k.age>k.due){k.over=true;G.safety-=TT[k.type].drain*.8*dt;if(TT[k.type].exp&&k.age>k.due+TT[k.type].exp)expire(k)}}
+    if(Math.random()<CALL_RATE*dgm*ramp*LOAD)addTask(r,'call');if(r.pt.fall&&Math.random()<ALARM_RATE*dgm*ramp*LOAD)addTask(r,'alarm')}
+  for(const k of G.tasks.slice()){k.age+=dt;if(k.age>k.due){k.over=true;G.safety-=TT[k.type].drain*.8*dt*DRAIN;if(TT[k.type].exp&&k.age>k.due+TT[k.type].exp*DUE)expire(k)}}
   // you
   let [ix,iy]=AUTO?autopilot(dt):inputVec();const sp=165*spdMul()*(G.buffT>0?1.25:1);if(G.buffT>0)G.buffT-=dt;tickHint(dt,!!(ix||iy));
   if(ix||iy){const nx=P.x+ix*sp*dt,ny=P.y+iy*sp*dt;
@@ -1120,11 +1123,11 @@ function update(dt){
   const M=magR();for(const o of G.orbs.slice()){o.t+=dt;const dx=P.x-o.x,dy=P.y-12-o.y,d=hyp(dx,dy);
     if(d<M){const s=Math.min(700,220+(M-d)*6);o.vx=dx/d*s;o.vy=dy/d*s}else{o.vx*=Math.pow(.05,dt);o.vy*=Math.pow(.05,dt)}
     o.x+=o.vx*dt;o.y+=o.vy*dt;if(d<18){G.orbs.splice(G.orbs.indexOf(o),1);G.xp+=o.v*(1+.1*pk('growth'));if(G.t-G.lastXpSfx>.06){sfx('xp');G.lastXpSfx=G.t}}}
-  G.coffeeT-=dt;if(G.coffeeT<=0){G.coffeeT=rnd(70,110);if(G.items.filter(i=>i.type==='coffee').length<2){const q=ringPt(rnd(0,PER));dropItem('coffee',q[0],q[1])}}
+  G.coffeeT-=dt;if(G.coffeeT<=0){G.coffeeT=rnd(70,110)*TIME;if(G.items.filter(i=>i.type==='coffee').length<2){const q=ringPt(rnd(0,PER));dropItem('coffee',q[0],q[1])}}
   {const MR=magR(),PR=28*(1+.2*pk('magnet'));for(const it of G.items.slice()){it.t+=dt;const dx=P.x-it.x,dy=P.y-12-it.y,d=hyp(dx,dy)||1;
     if(it.type==='kudos'&&d<MR){const v=Math.min(600,200+(MR-d)*5);it.x+=dx/d*v*dt;it.y+=dy/d*v*dt}
     if(d<PR){G.items.splice(G.items.indexOf(it),1);collect(it)}}}
-  while(G.xp>=G.xpNext){G.xp-=G.xpNext;G.level++;ring(P.x,P.y-12,'#ffd23f',120);burst(P.x,P.y-24,'#ffd23f',16,180);G.xpNext=5+4*G.level;G.pending++}
+  while(G.xp>=G.xpNext){G.xp-=G.xpNext;G.level++;ring(P.x,P.y-12,'#ffd23f',120);burst(P.x,P.y-24,'#ffd23f',16,180);G.xpNext=Math.max(3,Math.round((5+4*G.level)*XPN));G.pending++}
   for(const f of G.floaters.slice()){f.t+=dt;f.y-=28*dt;if(f.t>1.1)G.floaters.splice(G.floaters.indexOf(f),1)}
   if(G.safety<=0){G.safety=0;endRun(false);return}
   if((G.pending>0||G.gift>0)&&!G.paused)openLevelUp()}
