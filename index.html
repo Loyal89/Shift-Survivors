@@ -964,7 +964,8 @@ const pk=id=>(SAVE&&SAVE.perks&&SAVE.perks[id])||0, luckMul=()=>1+.2*pk('luck'),
 const SHIFT_SEC=240, GPS=720/SHIFT_SEC; // game minutes per real second; the fair demo is a 4-minute shift
 // TIME<1 squeezes the 12 hours into less real time. WORK scales how busy each real second is (LOAD thins the work per game hour to match),
 // XPN scales the XP needed per level, DUE stretches task timers and DRAIN scales safety loss. The fair demo is short and gentler for first-time players.
-const TIME=SHIFT_SEC/420, WORK=.9, LOAD=TIME*WORK, XPN=.75, DUE=1.5, DRAIN=.6;
+// PTS scales task points so the short shift scores about the same as the 7-minute one, which keeps older leaderboard scores comparable.
+const TIME=SHIFT_SEC/420, WORK=.9, LOAD=TIME*WORK, XPN=.75, DUE=1.5, DRAIN=.6, PTS=1.75;
 const CALL_RATE=0.006, ALARM_RATE=0.0018;
 
 /* ================= run state ================= */
@@ -1039,7 +1040,7 @@ function completeTask(k){const G=RUN,d=TT[k.type],onTime=!k.over,r=k.room;remove
   const nx=r.side==='left'?1:r.side==='right'?-1:0,ny=r.side==='top'?1:r.side==='bot'||r.side==='desk'?-1:0;spawnOrbs(r.door.x+nx*22,r.door.y+ny*22,xp,nx,ny);
   if(Math.random()<.07*luckMul())dropItem('kudos',r.door.x+nx*30+rnd(-14,14),r.door.y+ny*30,2+((Math.random()*4)|0));
   if(Math.random()<.015*luckMul())dropItem('clip',r.door.x+nx*34+rnd(-10,10),r.door.y+ny*34);
-  let pts=d.xp*10*(onTime?1:.5);if(k.type==='dc')pts+=100;if(k.type==='adm')pts+=120;if(k.type==='stroke'&&onTime)pts+=200;G.score+=Math.round(pts);
+  let pts=d.xp*10*(onTime?1:.5);if(k.type==='dc')pts+=100;if(k.type==='adm')pts+=120;if(k.type==='stroke'&&onTime)pts+=200;G.score+=Math.round(pts*PTS);
   G.safety=Math.min(G.safetyMax,G.safety+(onTime?1.5:.5));
   floater(r.bed.x,r.bed.y-48,onTime?tr('f_ontime'):tr('f_late'),onTime?'#36c26a':'#ffd23f');sfx('done');burst(r.bed.x,r.bed.y-36,onTime?'#36c26a':'#ffd23f',10);burst(r.bed.x,r.bed.y-36,'#ffffff',4);
   if(k.type==='meds'&&r.pt&&r.pt.pain){const id=r.pt.id;sched(gmNow()+rnd(40,70),()=>{if(r.pt&&r.pt.id===id)addTask(r,'pain')})}
@@ -1047,7 +1048,7 @@ function completeTask(k){const G=RUN,d=TT[k.type],onTime=!k.over,r=k.room;remove
   if(k.type==='adm'){G.stats.adm++;if(r.pt)r.pt.isNew=false;floater(r.bed.x,r.bed.y-70,tr('f_adm'),'#2de2e6')}
   if(k.type==='report'&&k.forRoom){sendAdmission(k.forRoom);toast(tr('t_onway',{r:k.forRoom.num}))}
   if(k.type==='stroke'){G.stats.stroke++;if(r.pt){r.pt.neuro=true;const id=r.pt.id;for(const d of [60,120,180])sched(gmNow()+d,()=>{if(r.pt&&r.pt.id===id)addTask(r,'neuro')});setTimeout(()=>{if(RUN===G&&!G.over)toast(tr('t_neuro',{r:r.num}))},1800)}}if(k.type==='rapid')G.stats.rapid++}
-function expire(k){const G=RUN,d=TT[k.type],r=k.room;removeTask(k);G.stats.missed++;G.safety-=d.hit*DRAIN;G.score=Math.max(0,G.score-d.xp*10);
+function expire(k){const G=RUN,d=TT[k.type],r=k.room;removeTask(k);G.stats.missed++;G.safety-=d.hit*DRAIN;G.score=Math.max(0,G.score-Math.round(d.xp*10*PTS));
   if(k.type==='neuro')G.stats.neuroMissed++;if(k.type==='stroke')G.stats.strokeMissed++;
   if(k.type==='alarm'){G.stats.falls++;floater(r.bed.x,r.bed.y-48,tr('f_fall'),'#ff4d5e');toast(tr('t_fall',{r:r.num}),'bad');buzz(140)}
   else{floater(r.bed.x,r.bed.y-48,tr('f_missed'),'#ff4d5e');burst(r.bed.x,r.bed.y-36,'#ff4d5e',8);if(URG[k.type]>=2)toast(tr('t_missed',{k:tr('k_'+k.type),r:r.num}),'bad')}
