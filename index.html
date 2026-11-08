@@ -1003,7 +1003,7 @@ function startRun(nurseId){
   let nx=240+rnd(0,20);while(nx<690){sched(nx,admit);nx+=rnd(28,42)/LOAD}
   [[150,300],[330,480],[510,690]].forEach(([a,b])=>sched(rnd(a,b),()=>urgent('stroke')));
   (LOAD<1?[[300,600]]:[[200,420],[450,680]]).forEach(([a,b])=>sched(rnd(a,b),()=>urgent('rapid')));
-  P.x=START.x;P.y=START.y;P.dir='down';P.focus=null;spawnDocs();
+  P.x=START.x;P.y=START.y;P.dir='down';P.focus=null;
   for(const k in nurse.perk){for(let i=0;i<nurse.perk[k];i++)applyUp(k,true)}
   // permanent perks bought with kudos
   for(let i=0;i<pk('startRN');i++)addHelper('rn',true);for(let i=0;i<pk('startCNA');i++)addHelper('cna',true);
