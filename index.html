@@ -85,6 +85,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
 #toast.show{opacity:1}
 #toast.alert{border-color:var(--violet);color:#e7d8ff;box-shadow:0 0 22px rgba(155,92,255,.6),3px 3px 0 #000}
 #toast.bad{border-color:var(--red);color:#ffd6db}
+#toast.rescue{border-color:var(--gold);color:#fff3c4;box-shadow:0 0 22px rgba(255,210,63,.55),3px 3px 0 #000}
+#toast.blue{border-color:#3d7bff;color:#dce8ff;box-shadow:0 0 22px rgba(61,123,255,.6),3px 3px 0 #000}
 /* unit feed (fair demo): what just happened on the unit, with the same icon as on the map */
 #feed{position:absolute;left:max(10px,env(safe-area-inset-left,0px));top:calc(env(safe-area-inset-top,0px) + 150px);display:flex;flex-direction:column;gap:6px;width:min(340px,56vw);transition:transform .2s}
 #feed .fd small{font-size:inherit}
@@ -101,6 +103,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
 #feed .fd.ok{border-left-color:var(--green)}
 #feed .fd.urg{border-left-color:var(--red);box-shadow:0 0 14px rgba(255,77,94,.45),3px 3px 0 #000}
 #feed .fd.urg.vio{border-left-color:var(--violet);box-shadow:0 0 14px rgba(155,92,255,.5),3px 3px 0 #000}
+#feed .fd.urg.gold{border-left-color:var(--gold);box-shadow:0 0 14px rgba(255,210,63,.45),3px 3px 0 #000}
+#feed .fd.urg.blu{border-left-color:#3d7bff;box-shadow:0 0 14px rgba(61,123,255,.55),3px 3px 0 #000}
 @keyframes fdin{from{transform:translateX(-115%);opacity:0}to{transform:none;opacity:1}}
 @media (max-width:720px){#feed{top:calc(env(safe-area-inset-top,0px) + 172px);width:min(270px,66vw);gap:5px}#feed .fd:nth-child(n+3){display:none}
   #feed .fd b{font-size:17px}#feed .fd span{font-size:15px}#feed .fd>i{width:30px;height:30px}}
@@ -576,6 +580,10 @@ const STR={en:{
  nm_title:'Escribe tu nombre',nm_label:'Nombre para la clasificación',nm_rank:'¡Quedarías en el puesto #{n} de la clasificación!',nm_first:'Todavía no hay puntajes. ¡Puedes ser el #1!',
  nm_try:'¡Sigue jugando para entrar al top {n}!',nm_skip:'Saltar',nm_next:'Ver tus resultados',nm_you:'TÚ',fl_mgr:'OFICINA DE\nGERENCIA',fl_uc:'COORDINACIÓN DE UNIDAD',fl_sup:'SUMINISTROS',fl_wc:'BAÑO',fl_lounge:'SALA DEL PERSONAL',fl_station:'ESTACIÓN DE ENFERMERÍA',fl_med:'MEDICAMENTOS',fl_edu:'OFICINA DE EDUCACIÓN',fl_elev:'ELEVADORES',hint_touch:'Arrastra en cualquier parte para moverte',hint_keys:'Muévete con WASD o las flechas'
 }};
+Object.assign(STR.en,{k_blue:'Code Blue',t_blue:'CODE BLUE · {r} · START CPR',fd_blue:'Heart stopped: start CPR now!'});
+Object.assign(STR.es,{k_blue:'Código azul',t_blue:'CÓDIGO AZUL · {r} · INICIA RCP',fd_blue:'Paro cardíaco: ¡inicia RCP ya!'});
+if(true){Object.assign(STR.en,{t_rapid:'CODE RESCUE · RAPID RESPONSE · {r}',fd_rapid:'Code Rescue: patient getting worse, go now!'});
+  Object.assign(STR.es,{t_rapid:'CODE RESCUE · RESPUESTA RÁPIDA · {r}',fd_rapid:'Code Rescue: el paciente empeora, ¡ve ya!'})}
 let LANG='en';
 function tr(k,v){let s=STR[LANG][k];if(s==null)s=STR.en[k];if(s==null)s=k;if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]);return s}
 function applyText(){$$('[data-t]').forEach(el=>{el.textContent=tr(el.dataset.t)});$$('[data-tp]').forEach(el=>{el.placeholder=tr(el.dataset.tp)});document.documentElement.lang=LANG}
@@ -600,6 +608,7 @@ function lockText(n){const u=n.unlock;if(!u)return '';if(u.xp!=null)return tr('l
 const ICOL={K:'#14121f',Y:'#ffd23f',y:'#c99a1a',R:'#ff4d5e',r:'#b8263a',W:'#f4f6fb',P:'#ff8fc4',p:'#d0569a',O:'#ff9a3d',B:'#3d7bff',G:'#36c26a',
   N:'#8a5a2b',V:'#9b5cff',D:'#555a6e',S:'#c9ced8',C:'#2de2e6',T:'#e8b98f',L:'#9fd3ff'};
 const ICONS={
+ blue:["............",".KKK....KKK.","KBBBK..KBBBK","KBWBBKKBBBBK","KBBBBBBBBBBK","KBBBBBBBBBBK","KWWBBWBBWWWK",".KBBWBWBBBK.","..KBBBWBBK..","...KBBBBK...","....KBBK....",".....KK....."],
  bell:["....KKKK....","...KYYYYK...","..KYYYYYYK..","..KYWYYYYK..","..KYWYYYYK..",".KYYYYYYYYK.",".KYYYYYYYYK.","KYYYYYYYYYYK","KKKKKKKKKKKK",".....KK.....","....KYYK....",".....KK....."],
  heart:["............",".KKK....KKK.","KRRRK..KRRRK","KRWRRKKRRRRK","KRRRRRRRRRRK","KRRRRRRRRRRK","KWWRRWRRWWWK",".KRRWRWRRRK.","..KRRRWRRK..","...KRRRRK...","....KRRK....",".....KK....."],
  brain:["............","...KKKKKK...","..KPPpPPPK..",".KPPPpPPpPK.",".KPpPPPpPPK.","KPPPpPPPPpPK","KPpPPPpPPPPK","KPPPPpPPpPPK",".KPPpPPPPPK.","..KKKPPKKK..","....KPPK....",".....KK....."],
@@ -973,6 +982,9 @@ const TT={
 const ISO={contact:{mul:1.3,col:'#ffb020',ink:'#14121f',ch:'C'},droplet:{mul:1.4,col:'#36c26a',ink:'#14121f',ch:'D'},airborne:{mul:1.6,col:'#ff4d5e',ink:'#ffffff',ch:'A'}};
 const AIIR=new Set([2435,2418]); // negative-pressure rooms: the only ones that take airborne patients
 const URG={stroke:3,rapid:3,alarm:2.2,adm:.6,dc:.5,report:.7};
+const CODEBLUE=true;if(CODEBLUE){TT.blue={work:9,due:22,xp:30,drain:1.8,exp:30,hit:22,cna:0,icon:'blue'};URG.blue=3}
+// each code flashes the screen in its own color: Code Stroke purple, Code Rescue (rapid response) yellow, Code Blue blue
+const CODE={stroke:{rgb:'155,92,255',hex:'#9b5cff',toast:'alert'},rapid:{rgb:'255,210,63',hex:'#ffd23f',toast:'rescue'},blue:{rgb:'61,123,255',hex:'#3d7bff',toast:'blue'}};
 const UP=[{id:'know',max:5,icon:'book',w:3},{id:'dc',max:5,icon:'dc',w:3},{id:'adm',max:5,icon:'adm',w:3},{id:'rn',max:3,icon:'steth',w:3},
  {id:'cna',max:3,icon:'cna',w:3},{id:'res',max:4,icon:'star',w:3},{id:'neuro',max:3,icon:'brain',w:2},{id:'shoes',max:4,icon:'shoe',w:2},
  {id:'presence',max:4,icon:'radar',w:2},{id:'magnet',max:3,icon:'magnet',w:1},{id:'huddle',max:3,icon:'coffee',w:1},{id:'ppe',max:2,icon:'mask',w:2}];
@@ -1027,7 +1039,7 @@ function startRun(nurseId){
   for(let i=0;i<Math.round(10*LOAD);i++)sched(rnd(180,480),dcOrder);
   let nx=240+rnd(0,20);while(nx<690){sched(nx,admit);nx+=rnd(28,42)/LOAD}
   [[150,300],[330,480],[510,690]].forEach(([a,b])=>sched(rnd(a,b),()=>urgent('stroke')));
-  (LOAD<1?[[300,600]]:[[200,420],[450,680]]).forEach(([a,b])=>sched(rnd(a,b),()=>urgent('rapid')));
+  (LOAD<1?[[300,600]]:[[200,420],[450,680]]).forEach(([a,b])=>sched(rnd(a,b),()=>urgent('rapid')));if(CODEBLUE)sched(rnd(420,640),()=>urgent('blue'));
   P.x=START.x;P.y=START.y;P.dir='down';P.focus=null;
   for(const k in nurse.perk){for(let i=0;i<nurse.perk[k];i++)applyUp(k,true)}
   // permanent perks bought with kudos
@@ -1044,15 +1056,15 @@ function schedulePatient(r,from){const id=r.pt.id;const ok=()=>r.pt&&r.pt.id===i
   // q4h vitals; neuro patients get vitals + neuro check together
   for(const w of [60,300,540])if(w>from+20&&(LOAD>=1||Math.random()<LOAD))sched(w+rnd(0,70),()=>{if(ok())addTask(r,r.pt.neuro?'neuro':'vitals')});
   for(const [w,p] of [[120,.8],[360,.45],[600,.8]])if(w>from+20&&Math.random()<p*LOAD)sched(w+rnd(0,60),()=>{if(ok())addTask(r,'meds')})}
-function dcOrder(){const c=ROOMS.filter(r=>r.active&&r.state==='occ'&&r.pt&&!r.pt.dc&&!r.pt.isNew&&!r.tasks.some(k=>k.type==='stroke'||k.type==='rapid'));
+function dcOrder(){const c=ROOMS.filter(r=>r.active&&r.state==='occ'&&r.pt&&!r.pt.dc&&!r.pt.isNew&&!r.tasks.some(k=>URG[k.type]>=3));
   if(!c.length)return;const r=pick(c);r.pt.dc=true;const k=addTask(r,'dc',{force:true});if(k){toast(tr('t_dcorder',{r:r.num}));
     if(r.pt.es&&!upLv('dc')&&!RUN.esHint){RUN.esHint=true;setTimeout(()=>toast(tr('t_es')),2600)}}}
 function admit(){const c=ROOMS.filter(r=>r.active&&r.state==='empty');if(!c.length)return;const r=pick(c);r.state='incoming';
   const k=addTask(DESK,'report',{force:true});if(k){k.forRoom=r;toast(tr('t_admit',{r:r.num}))}else sendAdmission(r)}
 function sendAdmission(r){spawnTransport('stretcher',ELEV.x,ELEV.y,r.door.x,r.door.y,()=>{r.pt=newPatient(true,r);r.state='occ';burst(r.door.x,r.door.y,'#2de2e6',12);addTask(r,'adm',{force:true});schedulePatient(r,gmNow())})}
-function urgent(type){let c=ROOMS.filter(r=>r.active&&r.state==='occ'&&r.pt&&!r.tasks.some(k=>k.type==='stroke'||k.type==='rapid'));
+function urgent(type){let c=ROOMS.filter(r=>r.active&&r.state==='occ'&&r.pt&&!r.tasks.some(k=>URG[k.type]>=3));
   if(type==='stroke'){const n=c.filter(r=>r.pt.neuro);if(n.length)c=n}if(!c.length)return;const r=pick(c);
-  if(addTask(r,type,{force:true})){toast(tr(type==='stroke'?'t_stroke':'t_rapid',{r:r.num}),'alert');sfx('siren');buzz([90,60,90]);RUN.flash=1.2;ring(r.bed.x,r.bed.y,type==='stroke'?'#9b5cff':'#ff4d5e',150)}}
+  if(addTask(r,type,{force:true})){const cd=CODE[type]||CODE.stroke;toast(tr('t_'+type,{r:r.num}),cd.toast);sfx('siren');buzz([90,60,90]);RUN.flash=1.5;RUN.flashC=cd.rgb;ring(r.bed.x,r.bed.y,cd.hex,150)}}
 function addTask(r,type,o){o=o||{};if(!RUN)return null;if(!r.active||r.state!=='occ'||!r.pt)return null;if(!r.desk&&r.tasks.some(k=>k.type===type))return null;
   if(r.tasks.length>=3&&!o.force)return null;const d=TT[type];
   const k={id:++RUN.tid,type,room:r,work:d.work*(type==='dc'&&r.pt.es&&!upLv('dc')?1.5:1),done:0,age:0,due:d.due*DUE,over:false,claim:null,dead:false};
@@ -1227,11 +1239,11 @@ function render(dt,t){
    for(const r of ROOMS){if(r.x>vx1||r.x+r.w<vx0||r.y>vy1||r.y+r.h<vy0)continue;const w=r.win;ctx.fillStyle=sky;ctx.fillRect(w.x,w.y,w.w,w.h);
      ctx.fillStyle='rgba(255,255,255,.45)';if(w.w>w.h)ctx.fillRect(w.x+4,w.y+1,w.w*.3,1);else ctx.fillRect(w.x+1,w.y+6,1,w.h*.3);
      if(!r.pt||(RUN&&!r.active))continue;
-     const alarm=r.tasks.some(k=>k.type==='alarm'||k.type==='rapid'||k.type==='stroke'),m=r.mon,bx=m.x+2,by=m.y+2,mw=m.w-4,base=by+5;
+     const alarm=r.tasks.some(k=>k.type==='alarm'||URG[k.type]>=3),m=r.mon,bx=m.x+2,by=m.y+2,mw=m.w-4,base=by+5;
      if(alarm&&((ts*4|0)%2)){ctx.fillStyle='#3a0d14';ctx.fillRect(bx,by,mw,m.h-4)}
      const ph=((ts*(alarm?2.4:1.2)+r.num*.37)%1)*mw;ctx.strokeStyle=alarm?'#ff4d5e':'#36ff8a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx,base);
      ctx.lineTo(bx+Math.max(0,ph-3),base);ctx.lineTo(bx+Math.max(0,ph-1.5),base-1);ctx.lineTo(bx+ph,base-4);ctx.lineTo(Math.min(bx+mw,bx+ph+1.5),base+2);ctx.lineTo(Math.min(bx+mw,bx+ph+3),base);ctx.lineTo(bx+mw,base);ctx.stroke();
-     if(RUN&&r.tasks.length){let col=null,hz=1.5;if(r.tasks.some(k=>k.type==='stroke'||k.type==='rapid')){col=((ts*3|0)%2)?'#b16bff':'#ff4d5e';hz=0}else if(r.tasks.some(k=>k.type==='alarm')){col='#ff4d5e';hz=4}else if(r.tasks.some(k=>k.type==='call'))col='#ffd23f';
+     if(RUN&&r.tasks.length){let col=null,hz=1.5;if(r.tasks.some(k=>k.type==='blue')){col=((ts*3|0)%2)?'#3d7bff':'#f4f6fb';hz=0}else if(r.tasks.some(k=>k.type==='stroke'||k.type==='rapid')){col=((ts*3|0)%2)?'#b16bff':'#ff4d5e';hz=0}else if(r.tasks.some(k=>k.type==='alarm')){col='#ff4d5e';hz=4}else if(r.tasks.some(k=>k.type==='call'))col='#ffd23f';
        if(col&&(hz===0||((ts*hz*2|0)%2===0))){const d=r.dome,gr=ctx.createRadialGradient(d.x,d.y,1,d.x,d.y,18);gr.addColorStop(0,col);gr.addColorStop(1,'rgba(0,0,0,0)');ctx.globalAlpha=.55;ctx.fillStyle=gr;ctx.fillRect(d.x-18,d.y-18,36,36);
          ctx.globalAlpha=1;ctx.fillStyle=col;ctx.beginPath();ctx.arc(d.x,d.y,3.5,0,7);ctx.fill()}}
      if(r.pt.iso){const c=r.ppe;ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(c.x+1,c.y+11,16,3);ctx.fillStyle='#e0a400';ctx.fillRect(c.x,c.y,16,12);ctx.fillStyle='#ffd23f';ctx.fillRect(c.x+1,c.y+1,14,4);
@@ -1267,7 +1279,7 @@ function render(dt,t){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   {const tn=lerpKeys(TINT,7+(RUN?gmNow():180)/60,arrMix);if(tn[3]>.005){ctx.fillStyle='rgba('+(tn[0]|0)+','+(tn[1]|0)+','+(tn[2]|0)+','+tn[3].toFixed(3)+')';ctx.fillRect(0,0,VW,VH)}
    const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.35,VW/2,VH/2,Math.max(VW,VH)*.78);vg.addColorStop(0,'rgba(5,4,15,0)');vg.addColorStop(1,'rgba(5,4,15,.34)');ctx.fillStyle=vg;ctx.fillRect(0,0,VW,VH)}
-  if(RUN&&!RUN.over){edgeArrows();if(RUN.flash>0){ctx.fillStyle='rgba(155,92,255,'+(.22*RUN.flash)+')';ctx.lineWidth=14;ctx.strokeStyle='rgba(155,92,255,'+(.6*RUN.flash)+')';ctx.strokeRect(0,0,VW,VH)}
+  if(RUN&&!RUN.over){edgeArrows();if(RUN.flash>0){const c=RUN.flashC||'155,92,255',a=Math.min(1,RUN.flash)*(.55+.45*Math.cos(RUN.flash*Math.PI*4));ctx.fillStyle='rgba('+c+','+(.16*a)+')';ctx.fillRect(0,0,VW,VH);ctx.lineWidth=14;ctx.strokeStyle='rgba('+c+','+(.6*a)+')';ctx.strokeRect(0,0,VW,VH)}
     if(RUN.safety<25){ctx.strokeStyle='rgba(255,77,94,'+(.35+.25*Math.sin(ts*6))+')';ctx.lineWidth=10;ctx.strokeRect(0,0,VW,VH)}}}
 function wetFloor(r){const x=r.side==='left'?r.door.x-34:r.side==='right'?r.door.x+34:r.door.x+34,y=r.side==='top'?r.door.y-30:r.side==='bot'?r.door.y+30:r.door.y+26;
   ctx.fillStyle='#14121f';ctx.beginPath();ctx.moveTo(x-9,y+11);ctx.lineTo(x-5,y-11);ctx.lineTo(x+5,y-11);ctx.lineTo(x+9,y+11);ctx.fill();
@@ -1302,7 +1314,7 @@ function drawMini(){const sx=mini.width/WW,sy=mini.height/WH;mg.setTransform(1,0
 
 /* ================= HUD & screens ================= */
 const hud=$('#hud');let toastTimer=0;
-function toast(msg,kind){const el=$('#toast');el.textContent=msg;el.className='show'+(kind?' '+kind:'');toastTimer=kind==='alert'?4.2:3.2}
+function toast(msg,kind){const el=$('#toast');el.textContent=msg;el.className='show'+(kind?' '+kind:'');toastTimer=kind&&kind!=='bad'?4.2:3.2}
 /* unit feed: a short line with the map icon each time something happens, merged by kind (×2, ×3…) */
 const FEED_ON=true,FEED_MAX=3,FEED_SEC=4.5;let feedRows=[];
 function feedRow(key,icon,cls,name,where,desc){if(!FEED_ON||!RUN)return;const box=$('#feed');if(!box)return;
@@ -1316,7 +1328,7 @@ function feedRow(key,icon,cls,name,where,desc){if(!FEED_ON||!RUN)return;const bo
   const b=row.el.querySelector('b');b.textContent=name;if(row.n>1){const i=document.createElement('i');i.textContent=' ×'+row.n;b.append(i)}
   const sp=row.el.querySelector('span'),em=document.createElement('em'),sm=document.createElement('small');em.textContent=where;sm.textContent=desc;sp.textContent='';sp.append(em,sm)}
 function feed(k){if(!k)return;const type=k.type,r=k.room;
-  feedRow(type,TT[type].icon,type==='stroke'?'urg vio':type==='rapid'?'urg':type==='alarm'?'warn':'',tr('k_'+type),
+  feedRow(type,TT[type].icon,type==='stroke'?'urg vio':type==='rapid'?'urg gold':type==='blue'?'urg blu':type==='alarm'?'warn':'',tr('k_'+type),
     r.desk?tr('fd_desk'):tr('fd_room',{r:r.num}),tr(type==='dc'&&r.pt&&r.pt.es?'fd_dc_es':'fd_'+type))}
 function feedPlace(){const f=$('#feed'),t=$('#toast');if(!f||!t)return;let dy=0;  // slide the feed down while a tall toast would cover it
   if(t.classList.contains('show')&&feedRows.length){const tb=t.getBoundingClientRect(),top=f.offsetTop;if(tb.left<f.offsetLeft+f.offsetWidth&&tb.bottom+8>top)dy=Math.ceil(tb.bottom+8-top)}
