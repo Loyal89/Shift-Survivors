@@ -1062,7 +1062,7 @@ function admit(){const c=ROOMS.filter(r=>r.active&&r.state==='empty');if(!c.leng
 function sendAdmission(r){spawnTransport('stretcher',ELEV.x,ELEV.y,r.door.x,r.door.y,()=>{r.pt=newPatient(true,r);r.state='occ';burst(r.door.x,r.door.y,'#2de2e6',12);addTask(r,'adm',{force:true});schedulePatient(r,gmNow())})}
 function urgent(type){let c=ROOMS.filter(r=>r.active&&r.state==='occ'&&r.pt&&!r.tasks.some(k=>URG[k.type]>=3));
   if(type==='stroke'){const n=c.filter(r=>r.pt.neuro);if(n.length)c=n}if(!c.length)return;const r=pick(c);
-  if(addTask(r,type,{force:true})){const cd=CODE[type]||CODE.stroke;toast(tr('t_'+type,{r:r.num}),cd.toast);sfx('siren');buzz([90,60,90]);RUN.flash=1.5;RUN.flashC=cd.rgb;ring(r.bed.x,r.bed.y,cd.hex,150)}}
+  const kk=addTask(r,type,{force:true});if(kk){codeTeam(kk);const cd=CODE[type]||CODE.stroke;toast(tr('t_'+type,{r:r.num}),cd.toast);sfx('siren');buzz([90,60,90]);RUN.flash=1.5;RUN.flashC=cd.rgb;ring(r.bed.x,r.bed.y,cd.hex,150)}}
 function addTask(r,type,o){o=o||{};if(!RUN)return null;if(!r.active||r.state!=='occ'||!r.pt)return null;if(!r.desk&&r.tasks.some(k=>k.type===type))return null;
   if(r.tasks.length>=3&&!o.force)return null;const d=TT[type];
   const k={id:++RUN.tid,type,room:r,work:d.work*(type==='dc'&&r.pt.es&&!upLv('dc')?1.5:1),done:0,age:0,due:d.due*DUE,over:false,claim:null,dead:false};
@@ -1104,7 +1104,8 @@ function applyUp(id,quiet){const U=RUN.up;if(id==='snack'){RUN.safety=Math.min(R
   // tasks waiting on a Spanish speaker lose the language delay once the form is in use
   if(id==='dc'&&U.dc===1)for(const k of RUN.tasks)if(k.type==='dc'&&k.room.pt&&k.room.pt.es)k.work=TT.dc.work;
   renderUps()}
-function rate(who,k){const U=RUN.up;let r=who==='you'?1:who==='rn'?.8:who==='cna'?1:(1.15+.25*(U.res-1));
+function rate(who,k){return baseRate(who,k)*crewBoost(k)}
+function baseRate(who,k){const U=RUN.up;let r=who==='you'?1:who==='rn'?.8:who==='cna'?1:(1.15+.25*(U.res-1));
   r*=who==='you'?1+.25*U.know:1+.1*U.know;r*=who==='you'?1+.05*pk('care'):1+.06*pk('team');if(k.type==='dc')r*=1+.4*U.dc;if(k.type==='adm'||k.type==='report')r*=1+.4*U.adm;if(k.type==='neuro'||k.type==='stroke')r*=1+.4*U.neuro;
   const iso=k.room.pt&&k.room.pt.iso;if(iso)r/=1+(ISO[iso].mul-1)*(1-.5*U.ppe);return r}
 const careR=()=>110*(1+.2*upLv('presence')), magR=()=>70*(1+.6*upLv('magnet'))*(1+.2*pk('magnet')), spdMul=()=>1+.12*upLv('shoes')+.05*pk('speed');
@@ -1263,7 +1264,7 @@ function render(dt,t){
   const people=[];
   if(RUN){for(const tp of RUN.transports)people.push({y:tp.y,draw:()=>drawTransport(tp)});
     for(const h of RUN.helpers)people.push({y:h.y,draw:()=>drawHuman(h.look,h.x,h.y,h.dir,h.path.length?h.anim:0,h.kind==='rn'?'RN':h.kind==='cna'?'CNA':'RES',h.kind==='rn'?'#7fb2ff':h.kind==='cna'?'#7be3a0':'#ffd23f')});
-    for(const n of RUN.npcs){if(n.kind==='md')people.push({y:n.y,draw:()=>drawHuman(n.look,n.x,n.y,n.dir,n.wait>0?0:n.anim,'MD','#e8e8f0')});
+    for(const n of RUN.npcs){if(n.kind==='code'){if(n.phase!=='wait')people.push({y:n.y,draw:()=>drawHuman(n.look,n.x,n.y,n.dir,n.phase==='stay'?0:n.anim,n.tag,n.col)})}else if(n.kind==='md')people.push({y:n.y,draw:()=>drawHuman(n.look,n.x,n.y,n.dir,n.wait>0?0:n.anim,'MD','#e8e8f0')});
       else people.push({y:n.y,draw:()=>{drawEvsCart(n);drawHuman(n.look,n.x,n.y,n.dir,n.phase==='clean'?0:n.anim,'EVS','#5fd3c9')}})}
     for(const r of ROOMS)if(r.active&&r.pt&&r.pt.visitor)people.push({y:r.vis.y,draw:()=>drawHuman(r.pt.visitor,r.vis.x,r.vis.y,'down',0)});
     people.push({y:P.y,draw:()=>{drawHuman(myLook(),P.x,P.y,P.dir,P.anim,(SAVE.look.name||tr('you')).toUpperCase(),'#ffffff',SAVE.reel?reelIcon(SAVE.reel):null);
@@ -1470,7 +1471,31 @@ function burst(x,y,col,n,spd){if(!RUN)return;for(let i=0;i<n;i++){const a=Math.r
 function hearts(x,y,n){if(!RUN)return;for(let i=0;i<n;i++)RUN.parts.push({x:x+rnd(-14,14),y:y-rnd(0,10),vx:rnd(-14,14),vy:rnd(-70,-40),t:0,life:1.5,icon:'heart',sz:13})}
 function ring(x,y,col,max){if(RUN)RUN.rings.push({x,y,c:col,t:0,max:max||100})}
 function spawnDocs(){for(let i=0;i<2;i++)RUN.npcs.push({kind:'md',look:randomLook('white','md'),x:START.x+(i?60:-40),y:START.y+(i?60:-40),path:[],wait:1+i*4+rnd(0,2),dir:'down',anim:0})}
+/* code team: when a code is called, an MD, two nurses and a CNA hurry to the room and stay until it's over.
+   Everyone in the room makes the code go faster (each team member there: +30% for whoever is working it),
+   and the team keeps working on its own if nobody from the unit makes it. */
+const CODE_TEAM=true,CREW_BOOST=.3,CREW_SOLO=.15;
+const CREW=[['md','white','MD'],['rn','royal','RN'],['rn','royal','RN'],['cna','hunter','CNA']];
+// codes take longer alone, so the team visibly speeds them up (about 2x with all four in the room)
+if(CODE_TEAM){TT.stroke.work=12;TT.rapid.work=11;if(TT.blue)TT.blue.work=14}
+const STAIRS={x:RG.l,y:RG.t};
+function crewSlots(r){const b=r.bed,out=[];
+  for(const [dx,dy] of [[-46,-4],[46,-4],[-46,34],[46,34],[0,58],[0,-56],[-34,58],[34,58],[-34,-56],[34,-56],[-60,14],[60,14]]){
+    const x=b.x+dx,y=b.y+dy;if(roomAt(x,y)===r&&canStand(x,y))out.push([x,y])}
+  while(out.length<CREW.length)out.push([r.door.x+rnd(-14,14),r.door.y+rnd(-8,8)]);return out}
+function codeTeam(k){if(!CODE_TEAM||!RUN)return;const r=k.room,slots=crewSlots(r),col=(CODE[k.type]||CODE.stroke).hex;
+  CREW.forEach(([role,scrub,tag],i)=>{const from=role==='md'?(hyp(ELEV.x-r.door.x,ELEV.y-r.door.y)<hyp(STAIRS.x-r.door.x,STAIRS.y-r.door.y)?ELEV:STAIRS):DESK.door;  // MD: nearest elevator or stairs; unit staff from the station
+    RUN.npcs.push({kind:'code',look:randomLook(scrub,role),tag,col,x:from.x,y:from.y,home:from,dir:'down',anim:0,task:k,room:r,
+      slot:slots[i],wait:.3+i*.35+rnd(0,.4),phase:'wait',path:[]})})}
+function crewStep(n,dt){const leave=()=>{n.phase='leave';n.path=route(n.x,n.y,n.home.x,n.home.y)};
+  if(n.phase==='wait'){if(n.task.dead){n.gone=true;return}n.wait-=dt;if(n.wait<=0){n.phase='go';n.path=route(n.x,n.y,n.slot[0],n.slot[1])}return}
+  if(n.phase==='go'){if(n.task.dead){leave();return}if(moveAlong(n,dt,205)){n.phase='stay';setDir(n,n.room.bed.x-n.x,n.room.bed.y-n.y)}return}
+  if(n.phase==='stay'){if(n.task.dead){leave();return}n.task.done+=dt*CREW_SOLO;if(n.task.done>=n.task.work)completeTask(n.task);return}
+  if(moveAlong(n,dt,140))n.gone=true}
+function crewBoost(k){if(!CODE_TEAM||!RUN||!(URG[k.type]>=3))return 1;let n=0;
+  for(const c of RUN.npcs)if(c.kind==='code'&&c.task===k&&c.phase==='stay')n++;return 1+CREW_BOOST*n}
 function npcStep(n,dt){
+  if(n.kind==='code'){crewStep(n,dt);return}
   if(n.kind==='md'){if(n.wait>0){n.wait-=dt;return}
     if(!n.path.length){const taken=new Set(RUN.npcs.filter(o=>o!==n&&o.kind==='md'&&o.dest).map(o=>o.dest));const c=ROOMS.filter(r=>r.active&&r.pt&&!taken.has(r));if(!c.length){n.wait=2;return}
       const r=pick(c);n.dest=r;n.path=route(n.x,n.y,r.door.x,r.door.y);if(!n.path.length){n.wait=1;return}}
