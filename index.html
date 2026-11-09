@@ -85,6 +85,27 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
 #toast.show{opacity:1}
 #toast.alert{border-color:var(--violet);color:#e7d8ff;box-shadow:0 0 22px rgba(155,92,255,.6),3px 3px 0 #000}
 #toast.bad{border-color:var(--red);color:#ffd6db}
+/* unit feed (fair demo): what just happened on the unit, with the same icon as on the map */
+#feed{position:absolute;left:max(10px,env(safe-area-inset-left,0px));top:calc(env(safe-area-inset-top,0px) + 150px);display:flex;flex-direction:column;gap:6px;width:min(340px,56vw);transition:transform .2s}
+#feed .fd small{font-size:inherit}
+#feed .fd{display:flex;gap:9px;align-items:center;background:rgba(11,10,28,.9);border:2px solid var(--line);border-left:6px solid var(--cyan);padding:5px 10px 5px 6px;box-shadow:3px 3px 0 #000;animation:fdin .28s ease-out;transition:opacity .4s}
+#feed .fd.out{opacity:0}
+#feed .fd>i{flex:none;width:34px;height:34px;border-radius:50%;background:#0b0a1c;border:2px solid #2a2550;display:flex;align-items:center;justify-content:center}
+#feed .fd canvas{width:24px;height:24px;image-rendering:pixelated}
+#feed .fd>div{min-width:0}
+#feed .fd b{display:block;font-weight:400;font-size:21px;line-height:1;letter-spacing:.05em;color:var(--ink);text-transform:uppercase}
+#feed .fd b i{font-style:normal;color:var(--gold)}
+#feed .fd span{display:block;font-size:18px;line-height:1.08;color:var(--muted);margin-top:3px}
+#feed .fd em{font-style:normal;color:var(--cyan);margin-right:6px}
+#feed .fd.warn{border-left-color:var(--gold)}
+#feed .fd.ok{border-left-color:var(--green)}
+#feed .fd.urg{border-left-color:var(--red);box-shadow:0 0 14px rgba(255,77,94,.45),3px 3px 0 #000}
+#feed .fd.urg.vio{border-left-color:var(--violet);box-shadow:0 0 14px rgba(155,92,255,.5),3px 3px 0 #000}
+@keyframes fdin{from{transform:translateX(-115%);opacity:0}to{transform:none;opacity:1}}
+@media (max-width:720px){#feed{top:calc(env(safe-area-inset-top,0px) + 172px);width:min(270px,66vw);gap:5px}#feed .fd:nth-child(n+3){display:none}
+  #feed .fd b{font-size:17px}#feed .fd span{font-size:15px}#feed .fd>i{width:30px;height:30px}}
+@media (max-height:520px){#feed{top:calc(env(safe-area-inset-top,0px) + 112px)}#feed .fd:nth-child(n+3){display:none}#feed .fd small{display:none}}
+@media (prefers-reduced-motion:reduce){#feed,#feed .fd{animation:none;transition:none}}
 #joy{position:fixed;z-index:15;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:3px solid rgba(45,226,230,.55);background:rgba(45,226,230,.08);pointer-events:none}
 #joy i{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(45,226,230,.55);display:block}
 /* level-up */
@@ -251,6 +272,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-o
   <div id="team"></div>
   <canvas id="mini" width="448" height="200"></canvas>
   <div id="toast" role="status" aria-live="polite"></div>
+  <div id="feed" aria-hidden="true"></div>
   <div id="hint" hidden><div class="ghost" id="hintJoy"><i></i></div><div class="keys" id="hintKeys"><b>W</b><b>A</b><b>S</b><b>D</b></div><span id="hintText"></span></div>
 </div>
 <div id="joy" hidden><i></i></div>
@@ -444,6 +466,7 @@ const STR={en:{
  h7:'Admissions start at the nurses\u2019 station: take report at the middle counter, then the patient comes up from the elevator.',
  h8:'Isolation rooms have a sign by the door: C contact, D droplet, A airborne. Gowning up makes every task there take longer.',
  k_call:'Call light',k_vitals:'Vital signs',k_neuro:'Neuro check',k_pain:'Pain reassessment',k_meds:'Meds due',k_alarm:'Bed alarm',k_dc:'Discharge teaching',k_adm:'Admission',k_stroke:'Stroke alert',k_rapid:'Rapid response',k_report:'Admission report',
+ fd_room:'Room {r}',fd_desk:'Nurses\u2019 station',fd_call:'A patient pressed the call button',fd_vitals:'Check blood pressure, pulse, temp',fd_neuro:'Watch for new stroke signs',fd_pain:'Recheck pain after medicine',fd_meds:'Medicines are due now',fd_alarm:'A fall-risk patient is getting up',fd_dc:'Teach the patient before going home',fd_dc_es:'Teach in Spanish before going home',fd_adm:'A new patient is arriving',fd_report:'Take report on a new patient',fd_stroke:'New stroke signs: go now!',fd_rapid:'Patient getting worse: go now!',fd_home:'Went home',fd_home_d:'Housekeeping cleans the room next',
  u_know:'More Knowledge',d_know:'You care 25% faster. Your team gets +10%.',
  u_dc:'Faster Discharges',d_dc:'Bilingual eDC form: discharge teaching 40% faster, and no extra time for Spanish speakers.',
  u_adm:'Faster Admissions',d_adm:'Admission report and assessments go 40% faster.',
@@ -512,6 +535,7 @@ const STR={en:{
  h7:'Los ingresos empiezan en la estación de enfermería: recibe el reporte en el mostrador del medio y luego el paciente sube por el elevador.',
  h8:'Los cuartos de aislamiento tienen un letrero en la puerta: C contacto, D gotitas, A aéreo. Ponerse el EPP hace que todas las tareas ahí tarden más.',
  k_call:'Luz de llamada',k_vitals:'Signos vitales',k_neuro:'Chequeo neurológico',k_pain:'Reevaluar el dolor',k_meds:'Medicamentos',k_alarm:'Alarma de cama',k_dc:'Enseñanza de alta',k_adm:'Ingreso',k_stroke:'Alerta de ACV',k_rapid:'Respuesta rápida',k_report:'Reporte de ingreso',
+ fd_room:'Hab. {r}',fd_desk:'Estación de enfermería',fd_call:'Un paciente pidió ayuda',fd_vitals:'Medir presión, pulso y temperatura',fd_neuro:'Vigilar signos nuevos de ACV',fd_pain:'Revisar el dolor tras el medicamento',fd_meds:'Toca dar los medicamentos',fd_alarm:'Un paciente con riesgo de caída se levanta',fd_dc:'Educar al paciente antes de irse a casa',fd_dc_es:'Educar en español antes de irse a casa',fd_adm:'Llega un paciente nuevo',fd_report:'Recibir reporte de un paciente nuevo',fd_stroke:'Signos nuevos de ACV: ¡ve ya!',fd_rapid:'El paciente empeora: ¡ve ya!',fd_home:'Se fue a casa',fd_home_d:'Limpieza prepara la habitación',
  u_know:'Más conocimiento',d_know:'Cuidas 25% más rápido. Tu equipo gana +10%.',
  u_dc:'Altas más rápidas',d_dc:'Formulario eDC bilingüe: enseñanza de alta 40% más rápida y sin tiempo extra en español.',
  u_adm:'Ingresos más rápidos',d_adm:'El reporte y la evaluación de ingreso van 40% más rápido.',
@@ -982,6 +1006,7 @@ function newPatient(isNew,room){return {id:++pid,iso:isoFor(room),visitor:Math.r
   neuro:Math.random()<(isNew?.4:.28),fall:Math.random()<.35,pain:Math.random()<.35,es:Math.random()<.35,isNew:!!isNew,dc:false,
   blanket:pick(['#a9d1f5','#c6e7c9','#f5d0a9','#d7c8f2','#f2c3cf'])}}
 function startRun(nurseId){
+  feedClear();
   const nurse=NURSES.find(n=>n.id===nurseId)||NURSES[0];
   RUN={t:0,ev:[],tasks:[],orbs:[],floaters:[],helpers:[],transports:[],parts:[],rings:[],npcs:[],tid:0,activeN:0,safety:100,safetyMax:100,xp:0,level:1,xpNext:Math.max(3,Math.round(6*XPN)),pending:0,
     up:{know:0,dc:0,adm:0,rn:0,cna:0,res:0,neuro:0,shoes:0,presence:0,magnet:0,huddle:0,ppe:0},score:0,over:false,paused:false,nurse:nurse.id,
@@ -1031,7 +1056,7 @@ function urgent(type){let c=ROOMS.filter(r=>r.active&&r.state==='occ'&&r.pt&&!r.
 function addTask(r,type,o){o=o||{};if(!RUN)return null;if(!r.active||r.state!=='occ'||!r.pt)return null;if(!r.desk&&r.tasks.some(k=>k.type===type))return null;
   if(r.tasks.length>=3&&!o.force)return null;const d=TT[type];
   const k={id:++RUN.tid,type,room:r,work:d.work*(type==='dc'&&r.pt.es&&!upLv('dc')?1.5:1),done:0,age:0,due:d.due*DUE,over:false,claim:null,dead:false};
-  r.tasks.push(k);RUN.tasks.push(k);if(type==='alarm')sfx('alarm');return k}
+  r.tasks.push(k);RUN.tasks.push(k);if(type==='alarm')sfx('alarm');feed(k);return k}
 function removeTask(k){k.dead=true;const r=k.room;r.tasks.splice(r.tasks.indexOf(k),1);RUN.tasks.splice(RUN.tasks.indexOf(k),1);if(k.claim)k.claim.target=null;if(P.focus===k)P.focus=null}
 function completeTask(k){const G=RUN,d=TT[k.type],onTime=!k.over,r=k.room;removeTask(k);
   G.stats.done++;if(onTime)G.stats.onTime++;else G.stats.late++;
@@ -1053,7 +1078,7 @@ function expire(k){const G=RUN,d=TT[k.type],r=k.room;removeTask(k);G.stats.misse
   if(k.type==='alarm'){G.stats.falls++;floater(r.bed.x,r.bed.y-48,tr('f_fall'),'#ff4d5e');toast(tr('t_fall',{r:r.num}),'bad');buzz(140)}
   else{floater(r.bed.x,r.bed.y-48,tr('f_missed'),'#ff4d5e');burst(r.bed.x,r.bed.y-36,'#ff4d5e',8);if(URG[k.type]>=2)toast(tr('t_missed',{k:tr('k_'+k.type),r:r.num}),'bad')}
   sfx('miss')}
-function discharge(r){for(const k of r.tasks.slice())removeTask(k);const look=r.pt.look;r.pt=null;r.state='evs';r.evsUntil=gmNow()+50;hearts(r.door.x,r.door.y,3);{const nx=r.side==='left'?1:r.side==='right'?-1:0,ny=r.side==='top'?1:r.side==='bot'?-1:0;if(Math.random()<.35*luckMul())dropItem('basket',r.door.x+nx*34,r.door.y+ny*34)}
+function discharge(r){for(const k of r.tasks.slice())removeTask(k);feedRow('home','dc','ok',tr('fd_home'),tr('fd_room',{r:r.num}),tr('fd_home_d'));const look=r.pt.look;r.pt=null;r.state='evs';r.evsUntil=gmNow()+50;hearts(r.door.x,r.door.y,3);{const nx=r.side==='left'?1:r.side==='right'?-1:0,ny=r.side==='top'?1:r.side==='bot'?-1:0;if(Math.random()<.35*luckMul())dropItem('basket',r.door.x+nx*34,r.door.y+ny*34)}
   RUN.npcs.push({kind:'evs',look:randomLook('pewter','evs'),x:ELEV.x,y:ELEV.y,path:route(ELEV.x,ELEV.y,r.door.x,r.door.y),phase:'go',room:r,dir:'down',anim:0});
   spawnTransport('wheel',r.door.x,r.door.y,ELEV.x,ELEV.y,null,look)}
 function spawnTransport(kind,fx,fy,tx,ty,done,look){RUN.transports.push({kind,x:fx,y:fy,path:route(fx,fy,tx,ty),done,look:look||{skin:(Math.random()*6)|0,style:(Math.random()*6)|0,hairc:(Math.random()*6)|0},
@@ -1278,7 +1303,27 @@ function drawMini(){const sx=mini.width/WW,sy=mini.height/WH;mg.setTransform(1,0
 /* ================= HUD & screens ================= */
 const hud=$('#hud');let toastTimer=0;
 function toast(msg,kind){const el=$('#toast');el.textContent=msg;el.className='show'+(kind?' '+kind:'');toastTimer=kind==='alert'?4.2:3.2}
-function updHud(dt){if(!RUN)return;toastTimer-=dt;if(toastTimer<=0)$('#toast').className='';
+/* unit feed: a short line with the map icon each time something happens, merged by kind (×2, ×3…) */
+const FEED_ON=true,FEED_MAX=3,FEED_SEC=4.5;let feedRows=[];
+function feedRow(key,icon,cls,name,where,desc){if(!FEED_ON||!RUN)return;const box=$('#feed');if(!box)return;
+  let row=feedRows.find(x=>x.key===key);
+  if(!row){const el=document.createElement('div');el.className='fd'+(cls?' '+cls:'');
+    const ic=document.createElement('i'),c=document.createElement('canvas');c.width=c.height=12;c.getContext('2d').drawImage(iconCanvas(icon),0,0);ic.appendChild(c);
+    const tx=document.createElement('div');tx.append(document.createElement('b'),document.createElement('span'));el.append(ic,tx);
+    row={key,el,n:0,t:0};feedRows.unshift(row);box.prepend(el);while(feedRows.length>FEED_MAX)feedRows.pop().el.remove()}
+  else if(feedRows[0]!==row){feedRows.splice(feedRows.indexOf(row),1);feedRows.unshift(row);box.prepend(row.el)}
+  row.n++;row.t=FEED_SEC;row.el.classList.remove('out');
+  const b=row.el.querySelector('b');b.textContent=name;if(row.n>1){const i=document.createElement('i');i.textContent=' ×'+row.n;b.append(i)}
+  const sp=row.el.querySelector('span'),em=document.createElement('em'),sm=document.createElement('small');em.textContent=where;sm.textContent=desc;sp.textContent='';sp.append(em,sm)}
+function feed(k){if(!k)return;const type=k.type,r=k.room;
+  feedRow(type,TT[type].icon,type==='stroke'?'urg vio':type==='rapid'?'urg':type==='alarm'?'warn':'',tr('k_'+type),
+    r.desk?tr('fd_desk'):tr('fd_room',{r:r.num}),tr(type==='dc'&&r.pt&&r.pt.es?'fd_dc_es':'fd_'+type))}
+function feedPlace(){const f=$('#feed'),t=$('#toast');if(!f||!t)return;let dy=0;  // slide the feed down while a tall toast would cover it
+  if(t.classList.contains('show')&&feedRows.length){const tb=t.getBoundingClientRect(),top=f.offsetTop;if(tb.left<f.offsetLeft+f.offsetWidth&&tb.bottom+8>top)dy=Math.ceil(tb.bottom+8-top)}
+  f.style.transform=dy?'translateY('+dy+'px)':''}
+function feedTick(dt){feedPlace();if(SCREEN!=='none')return;for(let i=feedRows.length-1;i>=0;i--){const x=feedRows[i];x.t-=dt;if(x.t<.45)x.el.classList.add('out');if(x.t<=0){x.el.remove();feedRows.splice(i,1)}}}
+function feedClear(){feedRows=[];const f=$('#feed');if(f)f.textContent=''}
+function updHud(dt){if(!RUN)return;toastTimer-=dt;if(toastTimer<=0)$('#toast').className='';feedTick(dt);
   $('#clock').textContent=clockStr(gmNow());$('#kudosHud').textContent=RUN.kudos?'+'+RUN.kudos+' KUDOS':'';$('#shiftfill').style.width=(100*RUN.t/SHIFT_SEC).toFixed(1)+'%';
   const sf=RUN.safety/RUN.safetyMax;$('#safefill').style.width=(100*sf).toFixed(1)+'%';$('#safefill').style.background=sf>.5?'var(--green)':sf>.25?'var(--gold)':'var(--red)';
   $('#safetxt').textContent=Math.ceil(RUN.safety);$('#score').textContent=RUN.score.toLocaleString();
