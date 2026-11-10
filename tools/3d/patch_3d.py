@@ -23,6 +23,8 @@ function gfxLabel(){const b=$('#b-gfx');if(!b)return;if(!G3D.available()){b.hidd
 window.SS3D={status:()=>G3D.status(),w2s:(x,y,h)=>G3D.w2s(x,y,h)};
 """
 rep("function render(dt,t){\n", "function render(dt,t){\n  if(G3D.render(dt,t))return;\n")
+if mode == 'artifact':
+    g3d = g3d.replace("const NURSE_URL='nurse_f.glb'", "const NURSE_URL='nurse_f.json'")   # artifacts serve .json, not .glb
 rep("const hot=window.claude&&window.claude.hot;", g3d + wire + "const hot=window.claude&&window.claude.hot;")
 rep("const b=k.room.bed;const sx=(b.x-cam.x)*ZOOM+VW/2,sy=(b.y-cam.y)*ZOOM+VH/2;",
     "const b=k.room.bed;let sx=(b.x-cam.x)*ZOOM+VW/2,sy=(b.y-cam.y)*ZOOM+VH/2;if(G3D.on()){const q=G3D.w2s(b.x,b.y,.4);sx=q.x;sy=q.y}")

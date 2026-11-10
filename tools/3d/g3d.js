@@ -301,12 +301,16 @@ function tintNurse(m,c){const u=m.userData.u,mean=m.userData.mean;
 const NURSE_URL='nurse_f.glb';let NURSE=null,nurseState=0;   // 0 not asked, 1 loading, 2 ready, 3 unavailable
 function bodyOf(L){return chibiOf(L,'').body}
 function loadNurse(){if(nurseState||!T.GLTFLoader||!T.SkeletonUtils)return;nurseState=1;
-  try{new T.GLTFLoader().load(NURSE_URL,g=>{let meta=null,mesh=null;g.scene.traverse(o=>{if(o.userData&&o.userData.mean)meta=o.userData;if(o.isSkinnedMesh)mesh=o});
+  const fail=e=>{nurseState=3;console.warn('nurse model unavailable',e)};
+  try{const done=g=>{let meta=null,mesh=null;g.scene.traverse(o=>{if(o.userData&&o.userData.mean)meta=o.userData;if(o.isSkinnedMesh)mesh=o});
       const idle=g.animations.find(a=>a.name==='idle'),walk=g.animations.find(a=>a.name==='walk');
       if(!mesh||!meta||!idle||!walk){nurseState=3;console.warn('nurse model: missing parts');return}
       NURSE={scene:g.scene,idle,walk,h:meta.height||97.9,speed:meta.walkSpeed||55,mean:meta.mean};nurseState=2;
-      const me=people.get('me');if(me)me.lk='';if(pv&&pv.L){pv.lk='';preview(pv.L)}},
-    undefined,e=>{nurseState=3;console.warn('nurse model unavailable',e)})}catch(e){nurseState=3;console.warn(e)}}
+      const me=people.get('me');if(me)me.lk='';if(pv&&pv.L){pv.lk='';preview(pv.L)}};
+    // a .json holds the same .glb as base64, for hosts that only serve web data types
+    if(/\.json$/.test(NURSE_URL))fetch(NURSE_URL).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{const b=atob(j.glb),u=new Uint8Array(b.length);
+      for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);new T.GLTFLoader().parse(u.buffer,'',done,fail)}).catch(fail);
+    else new T.GLTFLoader().load(NURSE_URL,done,undefined,fail)}catch(e){fail(e)}}
 function nurseColors(L){return {scrub:L.scrubC||scrubById(L.scrub).c,skin:SKINS[L.skin]||SKINS[1],hair:HAIRC[L.hairc]||HAIRC[1]}}
 const NURSE_H=.86;   // the player's height in world units, like the code-built nurse
 function makeNurse(L,scale,parent){
