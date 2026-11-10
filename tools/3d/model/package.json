@@ -1,0 +1,13 @@
+{
+  "name": "shift-survivors-model-tools",
+  "private": true,
+  "description": "Turns an image-to-3D character plus Mixamo clips into the game's nurse model",
+  "dependencies": {
+    "@gltf-transform/core": "^4.1.1",
+    "@gltf-transform/extensions": "^4.1.1",
+    "@gltf-transform/functions": "^4.1.1",
+    "assimpjs": "^0.0.10",
+    "meshoptimizer": "^0.22.0",
+    "sharp": "^0.33.5"
+  }
+}

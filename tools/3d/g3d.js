@@ -263,19 +263,80 @@ function makeChibi(o,scale,parent){
   const blob=new T.Mesh(GEO.blob,blobMat);blob.rotation.x=-Math.PI/2;blob.position.y=.004;root.add(blob);
   root.scale.setScalar(scale||1.1);(parent||scene).add(root);
   return {root,body,P:P2,ph:Math.random()*6,lx:null,ly:null,mv:0}}
+/* ---------- textured nurse: the Locker's scrub, skin and hair colors tint the model ----------
+   The model carries a class per vertex in its color attribute (scrubs, skin, hair). A texel only changes when its own
+   color fits that class, so the eyes, cap, shoes and pocket cross keep their colors. Colors are worked in sRGB-like space. */
+const NURSE_RECOLOR=[
+'{ vec3 s=pow(max(diffuseColor.rgb,vec3(0.0)),vec3(1.0/2.2)); float lum=dot(s,vec3(.3,.59,.11));',
+'  float tScrub=smoothstep(.02,.10,s.b-s.r);',
+'  float tSkin=smoothstep(.04,.12,s.r-s.b)*smoothstep(.26,.34,lum)*(1.0-smoothstep(.80,.90,min(s.r,min(s.g,s.b))));',
+'  float tHair=1.0-smoothstep(.40,.55,lum);',
+'  float fh=clamp(lum/uHairLum,0.0,3.0); vec3 hair=uHair*(1.6*fh/(.6+fh));',
+'  vec3 o=s;',
+'  o=mix(o,uScrub*clamp(lum/uScrubLum,0.0,1.7),clamp(vCls.x,0.0,1.0)*tScrub*uOn.x);',
+'  o=mix(o,s*uSkin,clamp(vCls.y,0.0,1.0)*tSkin*uOn.y);',
+'  o=mix(o,hair,clamp(vCls.z,0.0,1.0)*tHair*uOn.z);',
+'  diffuseColor.rgb=pow(clamp(o,0.0,1.0),vec3(2.2)); }'].join('\n');
+function hex3(h){const n=parseInt(String(h).replace('#',''),16);return new T.Vector3((n>>16&255)/255,(n>>8&255)/255,(n&255)/255)}
+function nurseMaterial(src,mean){
+  const lum=c=>.3*c[0]+.59*c[1]+.11*c[2];
+  const u={uScrub:{value:new T.Vector3()},uSkin:{value:new T.Vector3(1,1,1)},uHair:{value:new T.Vector3()},uOn:{value:new T.Vector3()},
+    uScrubLum:{value:lum(mean.scrub)},uHairLum:{value:Math.max(.05,lum(mean.hair))}};
+  const m=new T.MeshStandardMaterial({map:src.map,normalMap:src.normalMap||null,roughness:.62,metalness:0});
+  m.userData.u=u;m.userData.mean=mean;
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,u);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 color;\nvarying vec3 vCls;').replace('#include <begin_vertex>','#include <begin_vertex>\nvCls=color;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vCls;\nuniform vec3 uScrub;\nuniform vec3 uSkin;\nuniform vec3 uHair;\nuniform vec3 uOn;\nuniform float uScrubLum;\nuniform float uHairLum;')
+      .replace('#include <map_fragment>','#include <map_fragment>\n'+NURSE_RECOLOR)};
+  m.customProgramCacheKey=()=>'nurse-recolor-1';
+  return m}
+/* colors: {scrub:'#hex', skin:'#hex', hair:'#hex'}; leave one out to keep the model's own */
+function tintNurse(m,c){const u=m.userData.u,mean=m.userData.mean;
+  u.uOn.value.set(c.scrub?1:0,c.skin?1:0,c.hair?1:0);
+  if(c.scrub)u.uScrub.value.copy(hex3(c.scrub));
+  if(c.skin){const k=hex3(c.skin);u.uSkin.value.set(k.x/Math.max(.05,mean.skin[0]),k.y/Math.max(.05,mean.skin[1]),k.z/Math.max(.05,mean.skin[2]))}
+  if(c.hair)u.uHair.value.copy(hex3(c.hair))}
+
+/* the female player is the textured nurse model (nurse_f.glb next to the page); the code-built nurse stands in until it loads */
+const NURSE_URL='nurse_f.glb';let NURSE=null,nurseState=0;   // 0 not asked, 1 loading, 2 ready, 3 unavailable
+function bodyOf(L){return chibiOf(L,'').body}
+function loadNurse(){if(nurseState||!T.GLTFLoader||!T.SkeletonUtils)return;nurseState=1;
+  try{new T.GLTFLoader().load(NURSE_URL,g=>{let meta=null,mesh=null;g.scene.traverse(o=>{if(o.userData&&o.userData.mean)meta=o.userData;if(o.isSkinnedMesh)mesh=o});
+      const idle=g.animations.find(a=>a.name==='idle'),walk=g.animations.find(a=>a.name==='walk');
+      if(!mesh||!meta||!idle||!walk){nurseState=3;console.warn('nurse model: missing parts');return}
+      NURSE={scene:g.scene,idle,walk,h:meta.height||97.9,speed:meta.walkSpeed||55,mean:meta.mean};nurseState=2;
+      const me=people.get('me');if(me)me.lk='';if(pv&&pv.L){pv.lk='';preview(pv.L)}},
+    undefined,e=>{nurseState=3;console.warn('nurse model unavailable',e)})}catch(e){nurseState=3;console.warn(e)}}
+function nurseColors(L){return {scrub:L.scrubC||scrubById(L.scrub).c,skin:SKINS[L.skin]||SKINS[1],hair:HAIRC[L.hairc]||HAIRC[1]}}
+const NURSE_H=.86;   // the player's height in world units, like the code-built nurse
+function makeNurse(L,scale,parent){
+  const root=new T.Group(),body=T.SkeletonUtils.clone(NURSE.scene);root.add(body);
+  const k=NURSE_H/NURSE.h*(scale||1.18)/1.18;body.scale.setScalar(k);
+  let m=null;body.traverse(o=>{if(o.isSkinnedMesh){o.material=m=nurseMaterial(o.material,NURSE.mean);o.castShadow=true;o.frustumCulled=false}});
+  tintNurse(m,nurseColors(L));
+  const mixer=new T.AnimationMixer(body),idle=mixer.clipAction(NURSE.idle),walk=mixer.clipAction(NURSE.walk);
+  idle.play();walk.play();walk.setEffectiveWeight(0);idle.time=Math.random()*NURSE.idle.duration;
+  const blob=new T.Mesh(GEO.blob,blobMat);blob.rotation.x=-Math.PI/2;blob.position.y=.004;blob.scale.setScalar(scale||1.18);root.add(blob);
+  (parent||scene).add(root);
+  return {root,body,model:true,mixer,idle,walk,w:0,spS:0,natural:NURSE.speed*k/S,ph:0,lx:null,ly:null,mv:0,blob}}
+/* idle and walk blend by speed; the walk plays faster when she hurries (capped, so feet slide a little at full speed) */
+function stepNurse(c,dt,sp){c.spS+=(sp-c.spS)*Math.min(1,dt*8);const tw=c.mv>.5?1:0;c.w+=(tw-c.w)*Math.min(1,dt*9);
+  c.walk.setEffectiveWeight(c.w);c.idle.setEffectiveWeight(1-c.w);c.walk.timeScale=cl(c.spS/c.natural,.9,2.3);c.mixer.update(dt)}
 const people=new Map();let stamp=0;
 function person(key,L,role,x,y,dir,scale){
-  const lk=lookKey(L)+'|'+(L.body||'')+'|'+(role||'')+'|'+(scale||1.1);let c=people.get(key);
+  const useM=key==='me'&&nurseState===2&&bodyOf(L)==='f';
+  const lk=lookKey(L)+'|'+(L.body||'')+'|'+(role||'')+'|'+(scale||1.1)+(useM?'|model':'');let c=people.get(key);
   if(c&&c.lk!==lk){scene.remove(c.root);people.delete(key);c=null}
-  if(!c){c=makeChibi(chibiOf(L,role),scale);c.lk=lk;people.set(key,c);c.root.rotation.y={down:0,up:Math.PI,left:-Math.PI/2,right:Math.PI/2}[dir]||0}
+  if(!c){c=useM?makeNurse(L,scale):makeChibi(chibiOf(L,role),scale);c.lk=lk;people.set(key,c);c.root.rotation.y={down:0,up:Math.PI,left:-Math.PI/2,right:Math.PI/2}[dir]||0}
   c.seen=stamp;c.x=x;c.y=y;c.dir=dir;c.root.visible=true;return c}
 function stepPeople(dt){
   for(const [k,c] of people){if(c.seen!==stamp){c.root.visible=false;if(stamp-c.seen>240){scene.remove(c.root);people.delete(k)}continue}
     const dx=c.lx==null?0:c.x-c.lx,dy=c.ly==null?0:c.y-c.ly,sp=Math.hypot(dx,dy)/Math.max(dt,1e-3);c.lx=c.x;c.ly=c.y;
     c.mv=c.mv*.7+(sp>12?1:0)*.3;const moving=c.mv>.5;
+    if(c.model)stepNurse(c,dt,sp);else{
     c.ph+=dt*(moving?11:2);const s=Math.sin(c.ph),amp=moving?.5:0;
     c.P.legL.rotation.x=s*amp;c.P.legR.rotation.x=-s*amp;c.P.armL.rotation.x=-s*amp*.9;c.P.armR.rotation.x=s*amp*.9;
-    c.body.position.y=moving?Math.abs(Math.cos(c.ph))*.016:Math.sin(c.ph)*.003;c.P.head.rotation.z=moving?Math.sin(c.ph)*.04:Math.sin(c.ph*.5)*.02;
+    c.body.position.y=moving?Math.abs(Math.cos(c.ph))*.016:Math.sin(c.ph)*.003;c.P.head.rotation.z=moving?Math.sin(c.ph)*.04:Math.sin(c.ph*.5)*.02}
     c.root.position.set(c.x*S,0,c.y*S);
     const face=sp>12?Math.atan2(dx,dy):({down:0,up:Math.PI,left:-Math.PI/2,right:Math.PI/2}[c.dir]);
     if(face!=null){let d=face-c.root.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));c.root.rotation.y+=d*Math.min(1,dt*14)}}}
@@ -350,7 +411,7 @@ function init(){
     g.strokeStyle='#6dffb0';g.lineWidth=3;g.beginPath();for(let x=0;x<=256;x++){const p=x%64;let y=40;if(p>20&&p<24)y=40-(p-20)*2;else if(p>=24&&p<27)y=32+(p-24)*3;else if(p>=30&&p<33)y=40-(p-30)*9;
       else if(p>=33&&p<36)y=13+(p-33)*12;else if(p>=36&&p<38)y=49-(p-36)*4.5;else if(p>44&&p<52)y=40-Math.sin((p-44)/8*Math.PI)*6;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()});
   ecgTex.wrapS=T.RepeatWrapping;
-  geos();
+  geos();loadNurse();
   furniture();
   const rects=architecture();walls(rects);
   floorCanvas=document.createElement('canvas');floorCanvas.width=WW;floorCanvas.height=WH;floorTex=new T.CanvasTexture(floorCanvas);floorTex.encoding=T.sRGBEncoding;
@@ -509,9 +570,11 @@ function preview(L){const c=document.getElementById('locker3d');if(!c||!on()||!r
   try{if(!pv){const r=new T.WebGLRenderer({canvas:c,antialias:true,alpha:true});r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));r.outputEncoding=T.sRGBEncoding;r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
       const sc=new T.Scene();sc.add(new T.HemisphereLight('#eef3ff','#4a4060',1.05));const d=new T.DirectionalLight('#fff3e2',1.1);d.position.set(1.4,2.6,2.4);sc.add(d);const d2=new T.DirectionalLight('#9fc8ff',.45);d2.position.set(-2,1.2,-1.5);sc.add(d2);
       const cam=new T.PerspectiveCamera(28,c.width/c.height,.1,20);cam.position.set(0,.62,2.55);cam.lookAt(0,.5,0);pv={r,sc,cam,ch:null,lk:'',t:0}}
-    const lk=lookKey(L)+'|'+(L.body||'');if(pv.lk!==lk){if(pv.ch)pv.sc.remove(pv.ch.root);pv.ch=makeChibi(chibiOf(L,''),1.1,pv.sc);pv.ch.root.children.forEach(m=>{if(m.geometry===GEO.blob)m.visible=false});pv.lk=lk}
+    pv.L=L;loadNurse();const useM=nurseState===2&&bodyOf(L)==='f';
+    const lk=lookKey(L)+'|'+(L.body||'')+(useM?'|model':'');if(pv.lk!==lk){if(pv.ch)pv.sc.remove(pv.ch.root);pv.ch=useM?makeNurse(L,1.25,pv.sc):makeChibi(chibiOf(L,''),1.1,pv.sc);pv.ch.root.children.forEach(m=>{if(m.geometry===GEO.blob)m.visible=false});pv.lk=lk}
     return true}catch(e){console.warn(e);return false}}
-function previewTick(dt){if(!pv||!pv.ch||SCREEN!=='locker')return;pv.t+=dt;const c=pv.ch;c.root.rotation.y=Math.sin(pv.t*.6)*.65;c.ph+=dt*2;c.body.position.y=Math.sin(c.ph)*.003;c.P.head.rotation.z=Math.sin(c.ph*.5)*.03;pv.r.render(pv.sc,pv.cam)}
+function previewTick(dt){if(!pv||!pv.ch||SCREEN!=='locker')return;pv.t+=dt;const c=pv.ch;c.root.rotation.y=Math.sin(pv.t*.6)*.65;
+  if(c.model)c.mixer.update(dt);else{c.ph+=dt*2;c.body.position.y=Math.sin(c.ph)*.003;c.P.head.rotation.z=Math.sin(c.ph*.5)*.03}pv.r.render(pv.sc,pv.cam)}
 /* ---------- frame ---------- */
 let snapNext=true;
 function render(dt,t){
@@ -525,5 +588,6 @@ function render(dt,t){
   fit();if(lastLang!==LANG)paintFloor(paintFloor.rects);
   placeCamera(dt,snapNext);snapNext=false;lighting();syncRooms(ts);syncPeople(dt,ts);syncFx(dt,ts);syncCodes(dt,ts);
   composer.render(dt);overlay(ts);previewTick(dt);return true}
-return {on,render,setWant,isOn:()=>want,available:()=>HAS&&!dead,w2s,view,preview,snap:()=>{snapNext=true}};
+return {on,render,setWant,isOn:()=>want,available:()=>HAS&&!dead,w2s,view,preview,snap:()=>{snapNext=true},
+  status:()=>({ready,model:['none','loading','ready','unavailable'][nurseState],player:(people.get('me')||{}).model?'model':'built',preview:pv&&pv.ch?(pv.ch.model?'model':'built'):null})};
 })();

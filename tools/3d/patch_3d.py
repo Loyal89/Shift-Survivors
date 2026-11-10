@@ -7,7 +7,7 @@ g3d = open(os.path.join(here, 'g3d.js'), encoding='utf-8').read()
 LIBS = ['build/three.min.js', 'examples/js/shaders/CopyShader.js', 'examples/js/shaders/LuminosityHighPassShader.js',
         'examples/js/postprocessing/EffectComposer.js', 'examples/js/postprocessing/ShaderPass.js',
         'examples/js/postprocessing/RenderPass.js', 'examples/js/postprocessing/UnrealBloomPass.js',
-        'examples/js/utils/BufferGeometryUtils.js']
+        'examples/js/utils/BufferGeometryUtils.js', 'examples/js/loaders/GLTFLoader.js', 'examples/js/utils/SkeletonUtils.js']
 if mode == 'inline':
     libs = ''.join('<script>/* three.js r147 (MIT) ' + p + ' */\n' + open(os.path.join(here, 'package', p), encoding='utf-8').read().replace('</script', '<\\/script') + '\n</script>\n' for p in LIBS)
 else:
@@ -20,6 +20,7 @@ wire = """
 /* 3D / 2D switch on the title screen */
 function gfxLabel(){const b=$('#b-gfx');if(!b)return;if(!G3D.available()){b.hidden=true;return}b.textContent=G3D.isOn()?'3D':'2D';b.setAttribute('aria-pressed',String(G3D.isOn()))}
 {const b=$('#b-gfx');if(b)b.addEventListener('click',()=>{G3D.setWant(!G3D.isOn());G3D.snap();gfxLabel()});gfxLabel()}
+window.SS3D={status:()=>G3D.status(),w2s:(x,y,h)=>G3D.w2s(x,y,h)};
 """
 rep("function render(dt,t){\n", "function render(dt,t){\n  if(G3D.render(dt,t))return;\n")
 rep("const hot=window.claude&&window.claude.hot;", g3d + wire + "const hot=window.claude&&window.claude.hot;")
