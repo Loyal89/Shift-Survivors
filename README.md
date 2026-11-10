@@ -1,6 +1,6 @@
 # Shift Survivors
 
-A survivors-style arcade game set on 2 South: work a 12-hour shift, keep Unit Safety up, level up, and build a team of RNs, CNAs and a resource nurse. English and Spanish.
+A survivors-style arcade game set on 2 South: work a 12-hour shift, keep Unit Safety up, level up, and build a team of RNs, CNAs and a resource nurse. In 3D, in English and Spanish.
 
 **Play:** https://loyal89.github.io/Shift-Survivors/
 **Booth screen (live high scores + QR):** https://loyal89.github.io/Shift-Survivors/#board
@@ -12,6 +12,8 @@ A survivors-style arcade game set on 2 South: work a 12-hour shift, keep Unit Sa
 - Collect 12 badge reels and wear one on your name tag.
 
 Progress saves in each player's own browser. No patient data is used or collected.
+
+The page (`index.html`) is built from the game's source, `src/game.html`, by the scripts in `tools/3d` (see `tools/3d/README.md`).
 
 ## Leaderboard
 

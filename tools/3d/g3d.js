@@ -5,7 +5,7 @@
 const G3D=(function(){
 const T=window.THREE;
 const HAS=!!(T&&T.EffectComposer&&T.RenderPass&&T.UnrealBloomPass&&T.ShaderPass&&T.BufferGeometryUtils);
-let want=true;try{if(localStorage.getItem('ss_gfx')==='2d')want=false}catch(e){}
+let want=true;   // the game is 3D; the 2D view is only the fallback when WebGL can't start
 let ready=false,dead=!HAS,canvas3=null;
 const S=.01,WALL=.56,PITCH=.9,COARSE=matchMedia('(pointer: coarse)').matches;
 const rr=(a,b)=>a+Math.random()*(b-a),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -341,7 +341,7 @@ function loadModel(k){const M=MODELS[k],URL=M.url;if(M.state||!T.GLTFLoader||!T.
       if(!mesh||!meta||!idle||!walk){M.state=3;console.warn('character model: missing parts',URL);return}
       mesh.geometry.computeBoundingSphere();mesh.geometry.boundingSphere.radius*=1.3;   // room for the walk
       M.data={key:k,scene:g.scene,idle,walk,h:meta.height||97.9,speed:meta.walkSpeed||55,mean:meta.mean,meta};M.state=2;
-      for(const c of people.values())c.lk='';if(pv&&pv.L){pv.lk='';preview(pv.L)}};
+      for(const c of people.values())c.lk='';if(pv&&pv.L){pv.lk='';preview(pv.L,pv.mode)}if(SCREEN==='title')titleScreen()};
     // a .json holds the same .glb as base64, for hosts that only serve web data types; its pictures are decoded
     // straight from memory (createImageBitmap), so a page policy that blocks blob: addresses can't stop them
     if(/\.json$/.test(URL))fetch(URL).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{const b=atob(j.glb),u=new Uint8Array(b.length);
@@ -624,24 +624,31 @@ function overlay(ts){
 
 /* ---------- locker preview: your character, big and still; drag it to turn around ---------- */
 let pv=null;
-function preview(L){const c=document.getElementById('locker3d');if(!c||!on()||!ready)return false;
+/* your character in its own small renderer: in the Locker, and big on the title screen (one canvas moves between the two) */
+function preview(L,where){where=where||'locker';const c=document.getElementById('locker3d');if(!c||!on()||!ready)return false;
+  if(where==='title'){loadNurse();const M=MODELS[bodyOf(L)]||MODELS.f;if(M.state!==2)return false}   // the title waits for the model: no stand-in flash
+  const host=where==='title'?document.getElementById('heroStage'):document.querySelector('#s-locker .preview');if(host&&c.parentNode!==host)host.insertBefore(c,host.firstChild);
   try{if(!pv){const r=new T.WebGLRenderer({canvas:c,antialias:true,alpha:true});r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));r.outputEncoding=T.sRGBEncoding;r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
       const sc=new T.Scene();sc.add(new T.HemisphereLight('#eef3ff','#4a4060',1.05));const d=new T.DirectionalLight('#fff3e2',1.1);d.position.set(1.4,2.6,2.4);sc.add(d);const d2=new T.DirectionalLight('#9fc8ff',.45);d2.position.set(-2,1.2,-1.5);sc.add(d2);
-      const cam=new T.PerspectiveCamera(26,c.width/c.height,.1,20);cam.position.set(0,.6,2.25);cam.lookAt(0,.47,0);pv={r,sc,cam,ch:null,lk:'',t:0,rot:.3,drag:null};
+      const cam=new T.PerspectiveCamera(26,c.width/c.height,.1,20);cam.position.set(0,.6,2.25);cam.lookAt(0,.47,0);pv={r,sc,cam,ch:null,lk:'',t:0,rot:.3,drag:null,w:0,h:0,mode:where};
       c.addEventListener('pointerdown',e=>{pv.drag={x:e.clientX,a:pv.rot};try{c.setPointerCapture(e.pointerId)}catch(_){}});
       c.addEventListener('pointermove',e=>{if(pv.drag)pv.rot=pv.drag.a+(e.clientX-pv.drag.x)*.014});
       for(const ev of ['pointerup','pointercancel'])c.addEventListener(ev,()=>{pv.drag=null})}
-    pv.L=L;loadNurse();const D=modelFor(L,'');const bd=bodyOf(L);if(pv.body!==bd){pv.body=bd;pv.rot=.3}   // a new character starts facing you
+    const face=where==='title'?-.38:.3;if(pv.mode!==where){pv.mode=where;pv.rot=face}
+    pv.L=L;loadNurse();const D=modelFor(L,'');const bd=bodyOf(L);if(pv.body!==bd){pv.body=bd;pv.rot=face}   // a new character starts facing you (on the title, toward the menu)
     const lk=lookKey(L)+'|'+(L.body||'')+'|'+(L.shoes||'')+'|'+(L.steth===undefined?'':+!!L.steth)+(D?'|model'+D.key:'');if(pv.lk!==lk){if(pv.ch){pv.sc.remove(pv.ch.root);if(pv.ch.model)dropMats(pv.ch)}pv.ch=D?makeNurse(L,'',1.25,pv.sc,D):makeChibi(chibiOf(L,''),1.1,pv.sc);pv.ch.root.children.forEach(m=>{if(m.geometry===GEO.blob)m.visible=false});pv.lk=lk}
     return true}catch(e){console.warn(e);return false}}
-function previewTick(dt){if(!pv||!pv.ch||SCREEN!=='locker')return;pv.t+=dt;const c=pv.ch;c.root.rotation.y=pv.rot;
+function previewTick(dt){if(!pv||!pv.ch||SCREEN!==pv.mode)return;const cv=pv.r.domElement,w=cv.clientWidth,h=cv.clientHeight;
+  if(w&&h&&(w!==pv.w||h!==pv.h)){pv.w=w;pv.h=h;pv.r.setSize(w,h,false);pv.cam.aspect=w/h;pv.cam.updateProjectionMatrix()}   // follows the canvas's size on the page
+  pv.t+=dt;const c=pv.ch;c.root.rotation.y=pv.rot;
   if(c.model)c.mixer.update(dt);else{c.ph+=dt*2;c.body.position.y=Math.sin(c.ph)*.003;c.P.head.rotation.z=Math.sin(c.ph*.5)*.03}pv.r.render(pv.sc,pv.cam)}
 /* ---------- frame ---------- */
 let snapNext=true;
 function render(dt,t){
   const b3=document.body.classList;if(b3.contains('g3d')!==on())b3.toggle('g3d',on());
   if(!on())return false;
-  if(!ready){try{if(!init())throw new Error('init')}catch(e){console.warn('3D view unavailable, using 2D',e);dead=true;if(canvas3)canvas3.style.display='none';const gb=document.getElementById('b-gfx');if(gb)gb.hidden=true;return false}}
+  if(!ready){try{if(!init())throw new Error('init')}catch(e){console.warn('3D view unavailable, using 2D',e);dead=true;if(canvas3)canvas3.style.display='none';return false}
+    if(SCREEN==='title')setTimeout(titleScreen,0)}   // the title can show your 3D character now
   if(!FLOOR)return false;
   const ts=t/1000;
   if(RUN&&!RUN.over){cam.x+=(P.x-cam.x)*Math.min(1,dt*6);cam.y+=(P.y-cam.y)*Math.min(1,dt*6)}

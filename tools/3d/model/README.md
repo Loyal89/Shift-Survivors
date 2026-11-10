@@ -1,8 +1,8 @@
 # Character models for the 3D view
 
-Two models: `3d/nurse_f.glb` (women) and `3d/nurse_m.glb` (men). Both are made the same way; the male uses the settings in `cfg_m.js`.
+Two models: `nurse_f.glb` (women) and `nurse_m.glb` (men), at the top of the repo next to the game's page. Both are made the same way; the male uses the settings in `cfg_m.js`.
 
-Each is a textured, skinned nurse with an `idle` and an in-place `walk` clip (about 15,000 triangles, 1024 px texture, about 1.8 MB with its pieces). The game loads it next to `3d/index.html`; if it is missing, the
+Each is a textured, skinned nurse with an `idle` and an in-place `walk` clip (about 15,000 triangles, 1024 px texture, about 1.8 MB with its pieces). The game loads it next to `index.html`; if it is missing, the
 code-built people are used instead. Everyone on the floor is one of the two models, dressed for their role.
 
 What the Locker changes on it (`nurse_mat.js`, also inside `g3d.js`):
@@ -28,9 +28,9 @@ node a_convert.js . character.fbx raw.glb     # FBX -> GLB (assimp triangulates 
 node c_optimize.mjs raw.glb simple.glb 0.16   # ~15k triangles, 2048 px texture
 python3 rig.py THREE rig.js nurse_f_rigged.glb simple.glb Idle.fbx Walk.fbx   # see below
 RIG_CFG=cfg_m.js python3 rig.py THREE rig.js nurse_m_rigged.glb simple_m.glb Idle_m.fbx Walking_m.fbx   # the male
-node f_pack.mjs nurse_f_rigged.glb ../../../3d/nurse_f.glb q
-python3 view.py THREE ../../../3d/nurse_f.glb check.png '[["idle",1,0],["walk",0.5,1.57],["idle",1,3.1,0,{"style":"pony","cap":false}],["bones",0,0]]'
-python3 headview.py THREE ../../../3d/nurse_m.glb heads.png '[[{"style":"short","beard":true,"glasses":true},0.4,"beard"],[{"cap":true},2.4,"cap",[0,84,0,32]]]'
+node f_pack.mjs nurse_f_rigged.glb ../../../nurse_f.glb q
+python3 view.py THREE ../../../nurse_f.glb check.png '[["idle",1,0],["walk",0.5,1.57],["idle",1,3.1,0,{"style":"pony","cap":false}],["bones",0,0]]'
+python3 headview.py THREE ../../../nurse_m.glb heads.png '[[{"style":"short","beard":true,"glasses":true},0.4,"beard"],[{"cap":true},2.4,"cap",[0,84,0,32]]]'
 ```
 
 `THREE` is an unpacked `three@0.147.0` npm package (`npm pack three@0.147.0 && tar xzf three-0.147.0.tgz`).

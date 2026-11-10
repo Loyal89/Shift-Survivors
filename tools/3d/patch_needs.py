@@ -32,8 +32,8 @@ rep("reach:95,tasks:[],pt:{id:-1},state:'occ',active:true};",
     "const NEEDS=true;\n"
     "const SELF={wc:{num:'',side:'self',self:'wc',x:800,y:300,w:200,h:400,door:{x:906,y:338},bed:{x:922,y:356},spots:[{x:922,y:356,door:{x:906,y:338}},{x:922,y:646,door:{x:906,y:664}}],tasks:[],pt:{id:-2},state:'occ',active:true,reach:0},\n"
     "  meal:{num:'',side:'self',self:'meal',x:800,y:400,w:200,h:200,door:{x:950,y:506},bed:{x:900,y:524},spots:[{x:900,y:524,door:{x:950,y:506}}],tasks:[],pt:{id:-3},state:'occ',active:true,reach:0}};")
-rep("const CODEBLUE=true;if(CODEBLUE){TT.blue={work:9,due:22,xp:30,drain:1.8,exp:30,hit:22,cna:0,icon:'blue'};URG.blue=3}",
-    "const CODEBLUE=true;if(CODEBLUE){TT.blue={work:9,due:22,xp:30,drain:1.8,exp:30,hit:22,cna:0,icon:'blue'};URG.blue=3}\n"
+rep("if(CODEBLUE){TT.blue={work:9,due:22,xp:30,drain:1.8,exp:30,hit:22,cna:0,icon:'blue'};URG.blue=3}",   # (the Steam edition has no Code Blue)
+    "if(CODEBLUE){TT.blue={work:9,due:22,xp:30,drain:1.8,exp:30,hit:22,cna:0,icon:'blue'};URG.blue=3}\n"
     "TT.wc={work:3,due:34,xp:2,drain:0,exp:0,hit:0,cna:0,self:1,icon:'wc'};TT.meal={work:6,due:48,xp:4,drain:0,exp:0,hit:0,cna:0,self:1,icon:'snack'};\n"
     "ICONS.wc=['..KKKK......','..KWWK......','..KWWK......','..KWWKKKKKK.','..KWWKWWWWWK','..KWWKWLLLWK','..KWWWWWWWWK','...KWWWWWWK.','....KWWWWK..','....KSSSSK..','...KSSSSSSK.','...KKKKKKKK.'];")
 
@@ -99,7 +99,7 @@ rep("ctx.fillStyle='rgba('+c+','+(.16*a)+')';ctx.fillRect(0,0,VW,VH);ctx.lineWid
 rep("r.desk?tr('fd_desk'):tr('fd_room',{r:r.num})", "r.desk?tr('fd_desk'):r.self?tr('fd_at_'+r.self):tr('fd_room',{r:r.num})")
 
 # 9) How to play
-rep("[['move','h1'],['heart','h2'],['siren','h3'],", "[['move','h1'],['heart','h2'],['siren','h3'],['wc','h10'],['blue','h11'],")
+rep("['heart','h2'],['siren','h3'],", "['heart','h2'],['siren','h3'],['wc','h10'],[CODEBLUE?'blue':'siren','h11'],")
 
 # 10) words (English, Spanish)
 rep("fl_med:'MED ROOM',",
