@@ -1,7 +1,21 @@
 /* Runs in a headless page with three.js r147: skins the Tripo nurse to the Mixamo skeleton, turns the
-   Mixamo clips into an in-place idle and an in-place walking loop, and exports one GLB. */
+   Mixamo clips into an in-place idle and an in-place walking loop, and exports one GLB.
+   Numbers that depend on the character (head size, eyes, hem, where the hair pieces sit) come from a settings
+   object: the female nurse below, or window.RIG_CFG from a settings file loaded first (see cfg_m.js). */
+const CFG_F = {
+  head: { blueY: 72, minY: 65.5, ax: 16, axLow: 13.5, axLowY: 70, r: 25, skinAx: 12, neck: [65, 70] },
+  eye: { z: 6, ax: 7, y0: 70, y1: 81 }, chin: { y1: 72.5, z: -1, ax: 7.5 },
+  capY: 89.5, hemY: 41.8, shoeY: 10.5, cross: { y0: 50, y1: 66, z: 3 }, arm: { x: 10, y: 61, shoulderY: 62 }, upperY: 50,
+  hairPatch: [.6231, .6738, .8770, .9277], clothPatch: null, pixie: { c: [0, 82, -1], s: .74, y: 77 },
+  bun: { sphere: [4.7, 0, 87.6, -13.4, 1, .93, .82], torus: [3.7, 1.35, 0, 87.6, -12.1, 0], },
+  pony: { pts: [[0, 86.6, -12.2], [0, 85.4, -15.2], [0, 81, -17.3], [0, 75, -17.9], [0, 69.2, -17.1], [0, 64.4, -15.6]], w: [3.0, .7, 1.9], d: [2.7, .6, 1.4], tie: [0, 85.6, -14.6, -1.05] },
+  long: { pts: [[0, 79, -9.6], [0, 72.5, -11.2], [0, 66, -10.7], [0, 59.5, -10.0], [0, 53.5, -9.7]], w: [13.4, 3.6], d: [3.6, 1.4] },
+  curly: { center: [0, 81, -.5], minY: 70.5 },
+  glasses: { eye: [4.4, 79.1, 10.75], r: 2.6, temple: [[7, 79.4, 10.3], [9.3, 79.6, 7.6], [10.9, 79.7, 2.4]], bridge: [[1.85, 79.7, 10.85], [0, 80.25, 11.55]] },
+  steth: [[-3.4, 57.6, 9.3], [-4.1, 61.8, 8.6], [-4.9, 65.6, 6.6], [-5.6, 68.6, 2.6], [-4.4, 70.3, -2.6], [0, 70.6, -5.0]],
+  beard: null, scrubCap: null };
 async function buildNurse() {
-  const T = THREE, log = [];
+  const T = THREE, log = [], CFG = window.RIG_CFG || CFG_F;
   const gltf = await new T.GLTFLoader().loadAsync('http://local/file/0');
   let src = null; gltf.scene.traverse(n => { if (n.isMesh && !src) src = n; });
   const geo = src.geometry.clone(), m0 = [].concat(src.material)[0];
@@ -36,7 +50,7 @@ async function buildNurse() {
   const sm = (e0, e1, v) => { const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
   const bIndex = new Map(bones.map((b, i) => [b, i]));
   const SG = n => segs.find(s => s.bone === B(n));
-  const torsoSegs = ['Hips', 'Spine', 'Spine1', 'Spine2', 'Neck'].map(SG);
+  const torsoSegs = ['Hips', 'Spine', 'Spine1', 'Spine2', 'Neck'].map(SG).filter(Boolean);
   const armSegs = sd => ['Shoulder', 'Arm', 'ForeArm', 'Hand'].map(n => SG((sd > 0 ? 'Left' : 'Right') + n));
   const legSegs = sd => ['UpLeg', 'Leg', 'Foot', 'ToeBase'].map(n => SG((sd > 0 ? 'Left' : 'Right') + n));
   // the texture tells hair, cap, face and skin apart from the scrubs
@@ -46,37 +60,37 @@ async function buildNurse() {
     const o = ((Math.min(cv.height - 1, v * cv.height | 0)) * cv.width + Math.min(cv.width - 1, u * cv.width | 0)) * 4; return [px[o] / 255, px[o + 1] / 255, px[o + 2] / 255]; };
   const invW = list => { const w = list.map(([b, d]) => [b, 1 / Math.pow(d + .6, 4)]); return w; };
   const near = (p, list, n) => invW(list.map(s => [s.bone, pd(p, s)]).sort((a, b) => a[1] - b[1]).slice(0, n));
-  const hairFlag = new Uint8Array(N), capFlag = new Uint8Array(N), V3c = i => new T.Vector3().fromBufferAttribute(pos, i); const W = new Array(N), isHead = new Uint8Array(N), p = new T.Vector3(), counts = {}, clsA = new Float32Array(N * 4), clsB = new Float32Array(N * 4), sums = { scrub: [], skin: [], hair: [], shoes: [] };
+  const hairFlag = new Uint8Array(N), capFlag = new Uint8Array(N), skinFlag = new Uint8Array(N), V3c = i => new T.Vector3().fromBufferAttribute(pos, i); const W = new Array(N), isHead = new Uint8Array(N), p = new T.Vector3(), counts = {}, clsA = new Float32Array(N * 4), clsB = new Float32Array(N * 4), sums = { scrub: [], skin: [], hair: [], shoes: [] };
   const addTo = (m, list, f) => { const tot = list.reduce((s, c) => s + c[1], 0) || 1; for (const [b, w] of list) { const k = bIndex.get(b); m.set(k, (m.get(k) || 0) + f * w / tot); } };
   for (let i = 0; i < N; i++) {
     p.fromBufferAttribute(pos, i); const [r, g, b] = colorAt(i), lum = .3 * r + .59 * g + .11 * b, ax = Math.abs(p.x), sd = p.x >= 0 ? 1 : -1;
     const blue = b > r + .12, white = r > .72 && g > .72 && b > .72 && Math.abs(r - b) < .12, skin = r > .55 && r > b + .1 && !white && lum >= .3;
     const m = new Map(); W[i] = m;
     // recolor classes for the Locker: scrubs (blue or dark-blue cloth), skin, hair (not the eyes)
-    const headish = (!blue || p.y > 72) && p.y > 65.5 && ax < 16 && (ax < 13.5 || p.y > 70) && p.distanceTo(headC) < 25 && (!skin || ax < 12);
-    const dark = lum < .3 && !blue, eye = p.z > 6 && ax < 7 && p.y < 81 && p.y > 70;
-    const chin = p.y < 72.5 && p.z > -1 && ax < 7.5;
+    const H = CFG.head, headish = (!blue || p.y > H.blueY) && p.y > H.minY && ax < H.ax && (ax < H.axLow || p.y > H.axLowY) && p.distanceTo(headC) < H.r && (!skin || ax < H.skinAx);
+    const dark = lum < .3 && !blue, eye = p.z > CFG.eye.z && ax < CFG.eye.ax && p.y < CFG.eye.y1 && p.y > CFG.eye.y0;
+    const chin = p.y < CFG.chin.y1 && p.z > CFG.chin.z && ax < CFG.chin.ax;
     const hairish = dark || (r < .62 && r > g && g > b);
-    const cap = headish && p.y > 89.5 && !hairish;
+    const cap = CFG.capY != null && headish && p.y > CFG.capY && !hairish;
     const hairC = headish && !cap && !white && !blue && !eye && !chin && hairish;
-    const cloth = !headish && (blue || (dark && b >= r)), shoe = p.y < 10.5 && (white || (lum > .55 && Math.abs(r - b) < .15)) && !headish;
-    const cross = !headish && white && p.y > 50 && p.y < 66 && p.z > 3;
+    const cloth = !headish && (blue || (dark && b >= r)), shoe = p.y < CFG.shoeY && (white || (lum > .55 && Math.abs(r - b) < .15)) && !headish;
+    const cross = !headish && white && p.y > CFG.cross.y0 && p.y < CFG.cross.y1 && p.z > CFG.cross.z;
     const c4 = i * 4, v = [r, g, b, lum];
-    if (cloth) { clsA[c4 + (p.y > 41.8 ? 0 : 1)] = 1; sums.scrub.push(v); }
-    else if (skin && p.y > 10.5) { clsA[c4 + 2] = 1; sums.skin.push(v); }
+    if (cloth) { clsA[c4 + (p.y > CFG.hemY ? 0 : 1)] = 1; sums.scrub.push(v); }
+    else if (skin && p.y > CFG.shoeY) { clsA[c4 + 2] = 1; sums.skin.push(v); }
     else if (hairC) { clsA[c4 + 3] = 1; sums.hair.push(v); }
     if (shoe) { clsB[c4] = 1; sums.shoes.push(v); }
     if (cap) clsB[c4 + 1] = 1;
     if (cross) clsB[c4 + 2] = 1;
-    hairFlag[i] = hairC ? 1 : 0; capFlag[i] = cap ? 1 : 0;
-    if ((!blue || p.y > 72) && p.y > 65.5 && ax < 16 && (ax < 13.5 || p.y > 70) && p.distanceTo(headC) < 25 && (!skin || ax < 12)) {
+    hairFlag[i] = hairC ? 1 : 0; capFlag[i] = cap ? 1 : 0; skinFlag[i] = skin ? 1 : 0;
+    if (headish) {
       // hair, cap, face and ears ride on the head; the neck skin blends down into the neck
-      const k = skin ? sm(65, 70, p.y) : 1; m.set(bIndex.get(B('Head')), k); if (k < 1) m.set(bIndex.get(B('Neck')), 1 - k); isHead[i] = 1; continue;
+      const k = skin ? sm(H.neck[0], H.neck[1], p.y) : 1; m.set(bIndex.get(B('Head')), k); if (k < 1) m.set(bIndex.get(B('Neck')), 1 - k); isHead[i] = 1; continue;
     }
-    const torso = torsoSegs.concat(p.y > 62 ? [armSegs(sd)[0]] : []);
-    if (p.y > 50) {
+    const torso = torsoSegs.concat(p.y > CFG.arm.shoulderY ? [armSegs(sd)[0]] : []);
+    if (p.y > CFG.upperY) {
       // upper body: arms start past the armpit line, the rest follows the spine
-      const mArm = sm(-1.5, 1.5, ax - 10 + (p.y - 61) * .5);
+      const mArm = sm(-1.5, 1.5, ax - CFG.arm.x + (p.y - CFG.arm.y) * .5);
       if (mArm > 0) addTo(m, near(p, armSegs(sd), 3), mArm);
       if (mArm < 1) addTo(m, near(p, torso, 3), 1 - mArm);
     } else {
@@ -130,7 +144,11 @@ async function buildNurse() {
   const hipsPos = wclip.tracks.find(t => t.name === 'mixamorigHips.position');
   const sampleP = time => Array.from(hipsPos.createInterpolant().evaluate(time).slice(0, 3));
   let best = null;
-  for (let t0 = .45; t0 < wclip.duration - .6; t0 += 1 / 60) for (let L = .7; t0 + L <= wclip.duration - .01 && L <= 1.3; L += 1 / 60) {
+  const travel = (() => { const a = sampleP(0), b = sampleP(wclip.duration); return Math.hypot(b[0] - a[0], b[2] - a[2]); })();
+  log.push('walk clip ' + wclip.duration.toFixed(2) + 's, hips travel ' + travel.toFixed(1) + ' cm');
+  if (travel < 8) best = { t0: 0, L: wclip.duration, d: 0, inPlace: true };   // Mixamo "In Place": already a loop
+  else if (wclip.duration < 1.7) best = { t0: 0, L: wclip.duration, d: 0 };   // a plain walking loop: use it whole, minus the travel
+  else for (let t0 = .45; t0 < wclip.duration - .6; t0 += 1 / 60) for (let L = .7; t0 + L <= wclip.duration - .01 && L <= 1.3; L += 1 / 60) {
     let d = 0; for (const tr of qTracks) { const a = sampleQ(tr, t0), b = sampleQ(tr, t0 + L); d += 1 - Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]); }
     const pa = sampleP(t0), pb = sampleP(t0 + L); d += Math.abs(pa[1] - pb[1]) * .002;
     if (!best || d < best.d) best = { t0, L, d };
@@ -147,11 +165,22 @@ async function buildNurse() {
     const C = tr.constructor; const out = new C(tr.name, times, vals); return out;
   });
   const walk = new T.AnimationClip('walk', best.L, tracks);
-  const stride = Math.hypot(p1[0] - p0[0], p1[2] - p0[2]) / best.L;
+  let stride = Math.hypot(p1[0] - p0[0], p1[2] - p0[2]) / best.L;
+  if (best.inPlace) {
+    // no travel to measure: a planted foot slides back under the hips at walking speed
+    walkFbx.updateMatrixWorld(true); const mx = new T.AnimationMixer(walkFbx); mx.clipAction(wclip).play(); const fb = [], n = 120;
+    const bone = nm => { let o = null; walkFbx.traverse(q => { if (q.name === 'mixamorig' + nm) o = q; }); return o; }, feet = [bone('LeftFoot'), bone('RightFoot')], hips = bone('Hips');
+    const at = o => new T.Vector3().setFromMatrixPosition(o.matrixWorld);
+    for (let i = 0; i <= n; i++) { mx.setTime(wclip.duration * i / n); walkFbx.updateMatrixWorld(true); const h = at(hips); fb.push(feet.map(f => at(f).sub(h))); }
+    const v = []; for (const k of [0, 1]) { const ys = fb.map(f => f[k].y), lo = Math.min(...ys);
+      for (let i = 1; i < fb.length; i++) if (fb[i][k].y < lo + 1.5 && fb[i - 1][k].y < lo + 1.5) v.push(-(fb[i][k].z - fb[i - 1][k].z) / (wclip.duration / n)); }
+    v.sort((a, b) => a - b); stride = v.length ? v[v.length >> 1] : 50; log.push('in-place walk, planted-foot speed ' + stride.toFixed(1) + ' cm/s from ' + v.length + ' samples');
+  }
   log.push('walk loop ' + best.t0.toFixed(2) + 's +' + best.L.toFixed(2) + 's, mismatch ' + best.d.toFixed(4) + ', speed ' + stride.toFixed(1) + ' cm/s');
-  root.userData.walkSpeed = stride; root.userData.height = geo.boundingBox.max.y; root.userData.mean = mean; root.userData.version = 2;
+  root.userData.walkSpeed = stride; root.userData.height = geo.boundingBox.max.y; root.userData.mean = mean; root.userData.version = 3;
+  root.userData.pixie = CFG.pixie; root.userData.hasCap = CFG.capY != null;
 
-  buildAccessories({ T, root, mesh, geo, B, pos, N, hairFlag, capFlag, isHead, weldId, log });
+  buildAccessories({ T, root, mesh, geo, B, pos, N, hairFlag, capFlag, skinFlag, isHead, weldId, log, CFG });
   const glb = await new Promise((res, rej) => new T.GLTFExporter().parse(root, res, rej, { binary: true, animations: [idle, walk], onlyVisible: true }));
   const bytes = new Uint8Array(glb); let s = ''; for (let i = 0; i < bytes.length; i += 32768) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768));
   return { log, glb: btoa(s), walkSpeed: stride, height: geo.boundingBox.max.y };
@@ -160,10 +189,10 @@ async function buildNurse() {
 /* Accessories that fit this model, each riding on its bone; the game shows the ones a look asks for.
    Hair pieces use the body material with the hair class, textured from a patch of the model's own hair,
    so the Locker's hair color tints them too. The dome covers the head when the cap is hidden. */
-function buildAccessories({ T, root, mesh, geo, B, pos, N, hairFlag, capFlag, isHead, weldId, log }) {
+function buildAccessories({ T, root, mesh, geo, B, pos, N, hairFlag, capFlag, skinFlag, isHead, weldId, log, CFG }) {
   root.updateMatrixWorld(true);
   const HEAD = B('Head'), CHEST = B('Spine2'), bodyMat = mesh.material, V3 = (x, y, z) => new T.Vector3(x, y, z);
-  const U0 = .6231, U1 = .6738, V0 = .8770, V1 = .9277;                     // a patch of hair in the texture atlas
+  const [U0, U1, V0, V1] = CFG.hairPatch;                                     // a patch of hair in the texture atlas
   const accMat = new T.MeshStandardMaterial({ vertexColors: true, roughness: .4, metalness: .15, name: 'accessory' });
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const toBone = (bone, g) => g.applyMatrix4(new T.Matrix4().copy(bone.matrixWorld).invert().multiply(root.matrixWorld));
@@ -171,7 +200,8 @@ function buildAccessories({ T, root, mesh, geo, B, pos, N, hairFlag, capFlag, is
   const paint = (g, hex) => { const c = new T.Color(hex).convertSRGBToLinear(), n = g.attributes.position.count, a = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new T.BufferAttribute(a, 3)); return g; };
   const hairify = g => { const n = g.attributes.position.count, uv = g.attributes.uv, a = new Float32Array(n * 4);
-    for (let i = 0; i < n; i++) { const u = ((uv.getX(i) % 1) + 1) % 1, v = ((uv.getY(i) % 1) + 1) % 1; uv.setXY(i, U0 + u * (U1 - U0), V0 + v * (V1 - V0)); a[i * 4 + 3] = 1; }
+    // kept well inside the patch so the smaller mip levels don't pick up the neighbors in the atlas
+    for (let i = 0; i < n; i++) { const u = .18 + .64 * (((uv.getX(i) % 1) + 1) % 1), v = .18 + .64 * (((uv.getY(i) % 1) + 1) % 1); uv.setXY(i, U0 + u * (U1 - U0), V0 + v * (V1 - V0)); a[i * 4 + 3] = 1; }
     g.setAttribute('color', new T.BufferAttribute(a, 4)); g.setAttribute('color_1', new T.BufferAttribute(new Float32Array(n * 4), 4)); return g; };
   const merge = list => T.BufferGeometryUtils.mergeBufferGeometries(list.map(g => g.index ? g : g));
   const add = (bone, g, mat, name) => { const m = new T.Mesh(toBone(bone, g), mat); m.name = name; m.castShadow = true; bone.add(m); return m; };
@@ -184,27 +214,32 @@ function buildAccessories({ T, root, mesh, geo, B, pos, N, hairFlag, capFlag, is
       for (let j = 0; j <= radial; j++) { const a = j / radial * Math.PI * 2;
         const p = c.clone().addScaledVector(fr.binormals[i], Math.cos(a) * a1).addScaledVector(fr.normals[i], Math.sin(a) * a2); P.push(p.x, p.y, p.z); UV.push(j / radial, t); } }
     for (let i = 0; i < segs; i++) for (let j = 0; j < radial; j++) { const a = i * (radial + 1) + j, b = a + radial + 1; I.push(a, b, a + 1, b, b + 1, a + 1); }
-    for (const [i, flip] of [[0, true], [segs, false]]) { const c = curve.getPointAt(i / segs), k = P.length / 3; P.push(c.x, c.y, c.z); UV.push(.5, i / segs);
+    for (const [i, out] of [[0, -1], [segs, 1]]) { const c = curve.getPointAt(i / segs), k = P.length / 3, tg = curve.getTangentAt(i / segs).multiplyScalar(out); P.push(c.x, c.y, c.z); UV.push(.5, i / segs);
+      const v = n => V3(P[n * 3], P[n * 3 + 1], P[n * 3 + 2]), a0 = i * (radial + 1), nrm = v(a0).sub(c).cross(v(a0 + 1).sub(c));
+      const flip = nrm.dot(tg) < 0;   // (k, a, a+1) faces along the tube when its normal agrees with the outward tangent
       for (let j = 0; j < radial; j++) { const a = i * (radial + 1) + j; flip ? I.push(k, a + 1, a) : I.push(k, a, a + 1); } }
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(UV, 2)); g.setIndex(I); g.computeVertexNormals(); return g; };
 
   // --- hair pieces ---
-  add(HEAD, hairify(merge([place(new T.SphereGeometry(4.7, 22, 16), 0, 87.6, -13.4, 0, 0, 0, 1, .93, .82), place(new T.TorusGeometry(3.7, 1.35, 10, 26), 0, 87.6, -12.1, 0, 0, 0, 1, .95, 1)])), bodyMat, 'hair_bun');
-  add(HEAD, hairify(tube([V3(0, 86.6, -12.2), V3(0, 85.4, -15.2), V3(0, 81, -17.3), V3(0, 75, -17.9), V3(0, 69.2, -17.1), V3(0, 64.4, -15.6)],
-    t => 3.0 * (1 - t) + .7 * t + Math.sin(t * Math.PI) * 1.9, t => 2.7 * (1 - t) + .6 * t + Math.sin(t * Math.PI) * 1.4, 26, 14, V3(1, 0, 0))), bodyMat, 'hair_pony');
-  add(HEAD, paint(place(new T.TorusGeometry(1.75, .62, 8, 18), 0, 85.6, -14.6, -1.05, 0, 0), '#ff8fc4'), accMat, 'acc_tie');
-  add(HEAD, hairify(tube([V3(0, 79, -9.6), V3(0, 72.5, -11.2), V3(0, 66, -10.7), V3(0, 59.5, -10.0), V3(0, 53.5, -9.7)],
-    t => (13.4 - 3.6 * t) * (t > .86 ? Math.sqrt(Math.max(.05, 1 - ((t - .86) / .14) ** 2)) : 1), t => 3.6 - 1.4 * t, 24, 20, V3(1, 0, 0))), bodyMat, 'hair_long');
+  { const [r, x, y, z, sx, sy, sz] = CFG.bun.sphere, [tr, tt, tx, ty, tz, trx] = CFG.bun.torus;
+    add(HEAD, hairify(merge([place(new T.SphereGeometry(r, 22, 16), x, y, z, 0, 0, 0, sx, sy, sz), place(new T.TorusGeometry(tr, tt, 10, 26), tx, ty, tz, trx, 0, 0, 1, .95, 1)])), bodyMat, 'hair_bun'); }
+  { const P = CFG.pony, [w0, w1, w2] = P.w, [d0, d1, d2] = P.d;
+    add(HEAD, hairify(tube(P.pts.map(q => V3(...q)), t => w0 * (1 - t) + w1 * t + Math.sin(t * Math.PI) * w2, t => d0 * (1 - t) + d1 * t + Math.sin(t * Math.PI) * d2, 26, 14, V3(1, 0, 0))), bodyMat, 'hair_pony');
+    add(HEAD, paint(place(new T.TorusGeometry(1.75, .62, 8, 18), P.tie[0], P.tie[1], P.tie[2], P.tie[3], 0, 0), '#ff8fc4'), accMat, 'acc_tie'); }
+  { const Lg = CFG.long;
+    add(HEAD, hairify(tube(Lg.pts.map(q => V3(...q)), t => (Lg.w[0] - Lg.w[1] * t) * (t > .86 ? Math.sqrt(Math.max(.05, 1 - ((t - .86) / .14) ** 2)) : 1), t => Lg.d[0] - Lg.d[1] * t, 24, 20, V3(1, 0, 0))), bodyMat, 'hair_long'); }
   // curls: small balls of hair over the bob, spaced out
-  { const center = V3(0, 81, -.5), nrm = geo.attributes.normal, pts = [], kept = [];
+  { const center = V3(...CFG.curly.center), nrm = geo.attributes.normal, pts = [], kept = [];
     for (let i = 0; i < N; i++) if (hairFlag[i]) { const p = V3().fromBufferAttribute(pos, i), n = V3().fromBufferAttribute(nrm, i), d = p.clone().sub(center);
-      if (p.y > 70.5 && n.dot(d) > .35 * d.length()) pts.push([p, n]); }
+      if (p.y > CFG.curly.minY && n.dot(d) > .35 * d.length()) pts.push([p, n]); }
     for (let i = pts.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [pts[i], pts[j]] = [pts[j], pts[i]]; }
     for (const [p, n] of pts) if (kept.every(([q]) => q.distanceTo(p) > 3.9)) kept.push([p, n]);
-    const balls = kept.map(([p, n]) => { const r = 2.25 + rnd() * .55, c = p.clone().addScaledVector(n, .55); return place(new T.SphereGeometry(r, 9, 7), c.x, c.y, c.z, rnd() * 3, rnd() * 3, 0); });
-    add(HEAD, hairify(merge(balls)), bodyMat, 'hair_curly'); log.push('curls ' + kept.length); }
+    const capEdge = CFG.scrubCap ? CFG.scrubCap.c[1] + CFG.scrubCap.r[1] * Math.cos(CFG.scrubCap.theta) - .8 : 1e9, low = [], high = [];
+    for (const [p, n] of kept) { const r = 2.25 + rnd() * .55, c = p.clone().addScaledVector(n, .55); (c.y > capEdge ? high : low).push(place(new T.SphereGeometry(r, 9, 7), c.x, c.y, c.z, rnd() * 3, rnd() * 3, 0)); }
+    add(HEAD, hairify(merge(low)), bodyMat, 'hair_curly'); if (high.length) add(HEAD, hairify(merge(high)), bodyMat, 'hair_curlytop');
+    log.push('curls ' + kept.length + (high.length ? ' (' + high.length + ' under the cap)' : '')); }
   // dome: fills the opening left when the cap is hidden (every triangle that touches the cap is hidden in the shader)
-  { const idx = geo.index.array, wpos = new Map(), edges = new Map();
+  if (CFG.capY != null) { const idx = geo.index.array, wpos = new Map(), edges = new Map();
     for (let i = 0; i < N; i++) if (!wpos.has(weldId[i])) wpos.set(weldId[i], V3().fromBufferAttribute(pos, i));
     for (let f = 0; f < idx.length; f += 3) { if (!(capFlag[idx[f]] || capFlag[idx[f + 1]] || capFlag[idx[f + 2]])) continue;
       for (let e = 0; e < 3; e++) { const a = weldId[idx[f + e]], b = weldId[idx[f + (e + 1) % 3]], k = a < b ? a + '_' + b : b + '_' + a; edges.set(k, (edges.get(k) || 0) + 1); } }
@@ -225,9 +260,10 @@ function buildAccessories({ T, root, mesh, geo, B, pos, N, hairFlag, capFlag, is
 
   // --- glasses ---
   { const L = [];
-    for (const sd of [-1, 1]) { L.push(place(new T.TorusGeometry(2.6, .3, 8, 30), sd * 4.4, 79.1, 10.75, 0, sd * -.12, 0));
-      L.push(tube([V3(sd * 7, 79.4, 10.3), V3(sd * 9.3, 79.6, 7.6), V3(sd * 10.9, 79.7, 2.4)], () => .26, () => .26, 8, 6)); }
-    L.push(tube([V3(-1.85, 79.7, 10.85), V3(0, 80.25, 11.55), V3(1.85, 79.7, 10.85)], () => .27, () => .27, 8, 6));
+    const G = CFG.glasses, [ex, ey, ez] = G.eye, mir = (q, sd) => V3(sd * q[0], q[1], q[2]);
+    for (const sd of [-1, 1]) { L.push(place(new T.TorusGeometry(G.r, .3, 8, 30), sd * ex, ey, ez, 0, sd * -.12, 0));
+      L.push(tube(G.temple.map(q => mir(q, sd)), () => .26, () => .26, 8, 6)); }
+    L.push(tube([mir(G.bridge[0], -1), V3(...G.bridge[1]), mir(G.bridge[0], 1)], () => .27, () => .27, 8, 6));
     for (const g of L) { if (!g.attributes.uv) continue; } 
     add(HEAD, paint(merge(L.map(g => { g.deleteAttribute('uv'); return g; })), '#1d1c26'), accMat, 'acc_glasses'); }
 
@@ -235,12 +271,32 @@ function buildAccessories({ T, root, mesh, geo, B, pos, N, hairFlag, capFlag, is
   { const body = []; for (let i = 0; i < N; i++) if (!isHead[i]) body.push(V3().fromBufferAttribute(pos, i));
     const clear = (p, d0) => { for (let it = 0; it < 10; it++) { let best = null, bd = 1e9; for (const q of body) { const d = q.distanceToSquared(p); if (d < bd) { bd = d; best = q; } }
         bd = Math.sqrt(bd); if (bd >= d0) break; p.add(p.clone().sub(best).normalize().multiplyScalar(d0 - bd + .05)); } return p; };
-    const path = [V3(-3.4, 57.6, 9.3), V3(-4.1, 61.8, 8.6), V3(-4.9, 65.6, 6.6), V3(-5.6, 68.6, 2.6), V3(-4.4, 70.3, -2.6), V3(0, 70.6, -5.0),
-      V3(4.4, 70.3, -2.6), V3(5.6, 68.6, 2.6), V3(4.9, 65.6, 6.6), V3(4.1, 61.8, 8.6), V3(3.4, 57.6, 9.3)].map(p => clear(p, 1.05));
+    const half = CFG.steth.map(q => V3(...q)), path = half.concat(half.slice(0, -1).reverse().map(q => V3(-q.x, q.y, q.z))).map(p => clear(p, 1.05));
     const tubeG = paint(tube(path, () => .42, () => .42, 60, 8), '#2e3442');
     const end = path[path.length - 1], bell = paint(place(new T.CylinderGeometry(1.45, 1.45, .75, 20), end.x + .1, end.y - 1.3, end.z + .45, Math.PI / 2 - .25, 0, 0), '#c9ced8');
     const rim = paint(place(new T.TorusGeometry(1.45, .22, 6, 20), end.x + .1, end.y - 1.3, end.z + .85, -.25, 0, 0), '#8e95a3');
     const s = path[0], tips = [-1, 1].map(k => paint(place(new T.SphereGeometry(.55, 10, 8), s.x + k * .75, s.y - .9, s.z + .25), '#8e95a3'));
     for (const g of [bell, rim, ...tips]) g.deleteAttribute('uv'); tubeG.deleteAttribute('uv');
     add(CHEST, merge([tubeG, bell, rim, ...tips]), accMat, 'acc_steth'); log.push('stethoscope path ' + path.map(p => p.toArray().map(v => v.toFixed(1)).join(',')).join(' | ')); }
+
+  // --- beard: a thin shell over the jaw, chin and upper lip, textured and tinted like the hair ---
+  if (CFG.beard) { const Bd = CFG.beard, nrm = geo.attributes.normal, idx = geo.index.array, keep = new Uint8Array(N);
+    for (let i = 0; i < N; i++) { if (!isHead[i] || !skinFlag[i]) continue; const p = V3().fromBufferAttribute(pos, i), ax = Math.abs(p.x);
+      const face = p.y > Bd.y0 && p.y < Bd.y1 && p.z > Bd.z && ax < Bd.ax, side = ax > Bd.side[0] && p.y > Bd.y0 && p.y < Bd.side[1] && p.z > Bd.side[2] && p.z < Bd.side[3];
+      const mouth = ax < Bd.mouth[0] && p.y > Bd.mouth[1] && p.y < Bd.mouth[2] && p.z > Bd.mouth[3], nose = ax < Bd.nose[0] && p.y > Bd.nose[1] && p.z > Bd.nose[2];
+      keep[i] = (face || side) && !mouth && !nose ? 1 : 0; }
+    const P = [], UV = [], I = [], map = new Map();
+    const vid = i => { if (!map.has(i)) { const p = V3().fromBufferAttribute(pos, i).addScaledVector(V3().fromBufferAttribute(nrm, i), Bd.off); map.set(i, P.length / 3); P.push(p.x, p.y, p.z); UV.push((p.x + 12) / 24, (p.y - 66) / 16); } return map.get(i); };
+    for (let f = 0; f < idx.length; f += 3) if (keep[idx[f]] && keep[idx[f + 1]] && keep[idx[f + 2]]) I.push(vid(idx[f]), vid(idx[f + 1]), vid(idx[f + 2]));
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(UV, 2)); g.setIndex(I); g.computeVertexNormals();
+    add(HEAD, hairify(g), bodyMat, 'hair_beard'); log.push('beard ' + I.length / 3 + ' triangles'); }
+
+  // --- scrub cap: a cloth dome over the hair, in the scrubs' fabric and color ---
+  if (CFG.scrubCap) { const S = CFG.scrubCap, [C0, C1, D0, D1] = CFG.clothPatch, g = new T.SphereGeometry(1, 30, 16, 0, Math.PI * 2, 0, S.theta);
+    place(g, S.c[0], S.c[1], S.c[2], S.tilt || 0, 0, 0, S.r[0], S.r[1], S.r[2]);
+    const n = g.attributes.position.count, uv = g.attributes.uv, a = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) { uv.setXY(i, C0 + uv.getX(i) * (C1 - C0), D0 + uv.getY(i) * (D1 - D0)); a[i * 4] = 1; }
+    g.setAttribute('color', new T.BufferAttribute(a, 4)); g.setAttribute('color_1', new T.BufferAttribute(new Float32Array(n * 4), 4));
+    // a band around the bottom edge
+    add(HEAD, g, bodyMat, 'cloth_cap'); log.push('scrub cap'); }
 }

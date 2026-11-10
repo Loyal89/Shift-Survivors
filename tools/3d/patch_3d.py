@@ -24,7 +24,9 @@ window.SS3D={status:()=>G3D.status(),w2s:(x,y,h)=>G3D.w2s(x,y,h)};
 """
 rep("function render(dt,t){\n", "function render(dt,t){\n  if(G3D.render(dt,t))return;\n")
 if mode == 'artifact':
-    g3d = g3d.replace("const NURSE_URL='nurse_f.glb'", "const NURSE_URL='nurse_f.json'")   # artifacts serve .json, not .glb
+    for k in 'fm':   # artifacts serve .json, not .glb
+        assert g3d.count(f"url:'nurse_{k}.glb'") == 1
+        g3d = g3d.replace(f"url:'nurse_{k}.glb'", f"url:'nurse_{k}.json'")
 rep("const hot=window.claude&&window.claude.hot;", g3d + wire + "const hot=window.claude&&window.claude.hot;")
 rep("const b=k.room.bed;const sx=(b.x-cam.x)*ZOOM+VW/2,sy=(b.y-cam.y)*ZOOM+VH/2;",
     "const b=k.room.bed;let sx=(b.x-cam.x)*ZOOM+VW/2,sy=(b.y-cam.y)*ZOOM+VH/2;if(G3D.on()){const q=G3D.w2s(b.x,b.y,.4);sx=q.x;sy=q.y}")
@@ -35,7 +37,7 @@ rep('<button class="chip" id="b-es" type="button">Español</button>',
     '<button class="chip" id="b-es" type="button">Español</button>\n      <button class="chip" id="b-gfx" type="button" aria-pressed="true" title="3D or classic 2D graphics">3D</button>')
 # character creator: female or male, with a turning 3D preview in the Locker
 rep('<div class="preview"><canvas id="lockerSprite" width="16" height="22"></canvas>',
-    '<div class="preview"><canvas id="lockerSprite" width="16" height="22"></canvas><canvas id="locker3d" width="300" height="380" hidden aria-label="Your character"></canvas>')
+    '<div class="preview"><canvas id="lockerSprite" width="16" height="22"></canvas><canvas id="locker3d" width="540" height="706" hidden aria-label="Your character" title="Drag to turn"></canvas>')
 rep('<div class="opt wide"><h3 data-t="o_nurse">Nurse</h3>',
     '<div class="opt wide"><h3 data-t="o_body">Character</h3><div class="styles" id="optBody"></div></div>\n        <div class="opt wide"><h3 data-t="o_nurse">Nurse</h3>')
 rep("drawSpriteInto($('#lockerSprite'),myLook(),'down',0);",
@@ -54,11 +56,14 @@ rep("const ex=$('#optExtra');ex.innerHTML='';[['gl','x_gl'],['bd','x_bd'],['cap'
     "if(L.steth===undefined)L.steth=true;const ex=$('#optExtra');ex.innerHTML='';[['gl','x_gl'],['steth','x_steth'],['bd','x_bd'],['cap','x_cap']].forEach(([k,t])=>{")
 rep("  sw($('#optHairc'),HAIRC,L.hairc,i=>{L.hairc=i},i=>tr('o_hair')+' '+(i+1));",
     "  sw($('#optShoes'),SHOES,Math.max(0,SHOES.indexOf(L.shoes||SHOES[0])),i=>{L.shoes=SHOES[i]},i=>tr('o_shoes')+' '+(i+1));\n  sw($('#optHairc'),HAIRC,L.hairc,i=>{L.hairc=i},i=>tr('o_hair')+' '+(i+1));")
-rep("@keyframes fdin{from{opacity:0}to{opacity:1}}", "@keyframes fdin{from{opacity:0}to{opacity:1}}\n.preview #locker3d{width:150px;height:190px;image-rendering:auto}")
+rep("@keyframes fdin{from{opacity:0}to{opacity:1}}", "@keyframes fdin{from{opacity:0}to{opacity:1}}\n"
+    ".preview #locker3d{width:270px;height:353px;image-rendering:auto;touch-action:pan-y;cursor:grab}\n"
+    "@media (min-width:721px){body.g3d .locker{grid-template-columns:minmax(0,310px) minmax(0,1fr)}}\n"
+    "@media (max-width:720px){body.g3d .preview{flex-direction:column}.preview #locker3d{width:230px;height:300px}}")
 rep("fl_med:'MED ROOM',", "fl_med:'MED ROOM',o_body:'Character',b_f:'Female',b_m:'Male',")
 rep("fl_med:'MEDICAMENTOS',", "fl_med:'MEDICAMENTOS',o_body:'Personaje',b_f:'Mujer',b_m:'Hombre',")
-rep("x_cap:'Scrub cap'", "x_cap:'Nurse cap',x_steth:'Stethoscope',o_shoes:'Shoes'")
-rep("x_cap:'Gorro quir\\u00fargico'", "x_cap:'Gorro de enfermera',x_steth:'Estetoscopio',o_shoes:'Zapatos'")
+rep("x_cap:'Scrub cap'", "x_cap:'Cap',x_steth:'Stethoscope',o_shoes:'Shoes'")
+rep("x_cap:'Gorro quir\\u00fargico'", "x_cap:'Gorro',x_steth:'Estetoscopio',o_shoes:'Zapatos'")
 if mode == 'artifact':
     s = re.sub(r'<!DOCTYPE html>\s*', '', s, flags=re.I)
     s = re.sub(r'</?html[^>]*>\s*', '', s); s = re.sub(r'</?head>\s*', '', s); s = re.sub(r'</?body[^>]*>\s*', '', s)
