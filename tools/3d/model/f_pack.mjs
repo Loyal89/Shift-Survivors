@@ -26,7 +26,7 @@ const steps = [
   textureCompress({ encoder: sharp, targetFormat: 'jpeg', resize: [512, 512], quality: 90, slots: /^normalTexture$/ }),
   resample({ tolerance: 2e-4 }), prune({ keepAttributes: true }), dedup()];   // keep COLOR_1 (Locker classes)
 // positions stay float (the game places hair pieces and accessories in the model's own centimeters); the rest is quantized
-if (q === 'q') steps.push(quantize({ pattern: /^(NORMAL|TEXCOORD|COLOR|JOINTS|WEIGHTS)/, quantizeNormal: 10, quantizeTexcoord: 12, quantizeColor: 8, quantizeWeight: 8 }));
+if (q === 'q') steps.push(quantize({ pattern: /^(NORMAL|TEXCOORD|COLOR|JOINTS|WEIGHTS)/, quantizeNormal: 8, quantizeTexcoord: 12, quantizeColor: 8, quantizeWeight: 8 }));
 await doc.transform(...steps);
 if (q === 'q') doc.createExtension(KHRMeshQuantization).setRequired(true);   // quantized normals, colors, weights
 await io.write(out, doc);

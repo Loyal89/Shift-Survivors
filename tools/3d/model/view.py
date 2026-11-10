@@ -30,7 +30,7 @@ with sync_playwright() as p:
         const [name, t, yaw] = shots[i];
         const sc = new T.Scene(); sc.add(new T.HemisphereLight('#ffffff', '#445', 1.1)); const d = new T.DirectionalLight('#fff', .9); d.position.set(1, 2, 3); sc.add(d);
         const g2 = await new T.GLTFLoader().loadAsync('http://local/m.glb'); const m = g2.scene; sc.add(m); m.rotation.y = yaw;
-        m.traverse(o => { if (o.isSkinnedMesh) o.frustumCulled = false; });   // quantized meshes carry a tiny bounding sphere
+        m.traverse(o => { if (o.isMesh) o.frustumCulled = false; });   // quantized meshes carry a tiny bounding sphere
         if (name === 'bones') { m.traverse(o => { if (o.isSkinnedMesh) { const g = o.geometry, si = g.attributes.skinIndex, sw = g.attributes.skinWeight, n = si.count, col = new Float32Array(n * 3);
             const pal = k => { const h = (k * 0.6180339) % 1; return new T.Color().setHSL(h, .75, .5); };
             for (let i = 0; i < n; i++) { const c = new T.Color(0, 0, 0); for (let j = 0; j < 4; j++) { const gx = ['getX','getY','getZ','getW'][j], w = sw[gx](i); if (w > 0) c.add(pal(si[gx](i)).multiplyScalar(w)); } col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
@@ -38,7 +38,7 @@ with sync_playwright() as p:
         else { const mixer = new T.AnimationMixer(m); const a = mixer.clipAction(g2.animations.find(c => c.name === name)); a.play(); mixer.setTime(t); }
         const zoom = SHOTS[i][3] || 0, tint = SHOTS[i][4];
         if (name !== 'bones' && typeof nurseMaterial === 'function') { let meta = null; m.traverse(o => { if (o.userData && o.userData.mean) meta = o.userData; });
-          let mm = null; m.traverse(o => { if (o.isSkinnedMesh) { mm = o.material = nurseMaterial(o.material, meta.mean, meta); } }); dressNurse(m, mm, Object.assign({ cap: meta.hasCap !== false }, tint || {})); }
+          let mm = null; m.traverse(o => { if (o.isSkinnedMesh && !/^(hair|acc|cloth)_/.test(o.name)) { mm = o.material = nurseMaterial(o.material, meta.mean, meta); } }); dressNurse(m, mm, Object.assign({ cap: meta.hasCap !== false }, tint || {})); }
         const cam = new T.PerspectiveCamera(30, W / 500, 1, 1000); if (zoom) { cam.position.set(0, 64, 110); cam.lookAt(0, 64, 0); cam.fov = 26; cam.aspect = W / 500; cam.updateProjectionMatrix(); } else { cam.position.set(0, 55, 260); cam.lookAt(0, 50, 0); }
         r.setViewport(i * W, 0, W, 500); r.setScissor(i * W, 0, W, 500); r.render(sc, cam);
       }
