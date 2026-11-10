@@ -62,7 +62,7 @@ async function buildNurse() {
     const cloth = !headish && (blue || (dark && b >= r)), shoe = p.y < 10.5 && (white || (lum > .55 && Math.abs(r - b) < .15)) && !headish;
     const cross = !headish && white && p.y > 50 && p.y < 66 && p.z > 3;
     const c4 = i * 4, v = [r, g, b, lum];
-    if (cloth) { clsA[c4 + (p.y > 42.8 ? 0 : 1)] = 1; sums.scrub.push(v); }
+    if (cloth) { clsA[c4 + (p.y > 41.8 ? 0 : 1)] = 1; sums.scrub.push(v); }
     else if (skin && p.y > 10.5) { clsA[c4 + 2] = 1; sums.skin.push(v); }
     else if (hairC) { clsA[c4 + 3] = 1; sums.hair.push(v); }
     if (shoe) { clsB[c4] = 1; sums.shoes.push(v); }
