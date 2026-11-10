@@ -2,7 +2,7 @@ import sys, os, json, base64
 from playwright.sync_api import sync_playwright
 PKG, RIG, OUT = sys.argv[1], sys.argv[2], sys.argv[3]; files = sys.argv[4:]
 LIBS = ['build/three.min.js', 'examples/js/libs/fflate.min.js', 'examples/js/curves/NURBSUtils.js', 'examples/js/curves/NURBSCurve.js',
-        'examples/js/loaders/FBXLoader.js', 'examples/js/loaders/GLTFLoader.js', 'examples/js/exporters/GLTFExporter.js']
+        'examples/js/loaders/FBXLoader.js', 'examples/js/utils/BufferGeometryUtils.js', 'examples/js/loaders/GLTFLoader.js', 'examples/js/exporters/GLTFExporter.js']
 html = '<!doctype html><html><body>' + ''.join(f'<script src="http://local/lib/{l}"></script>' for l in LIBS) + '<script src="http://local/rig.js"></script></body></html>'
 def route(r, q):
     u = q.url

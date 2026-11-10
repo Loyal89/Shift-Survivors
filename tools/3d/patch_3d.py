@@ -44,12 +44,21 @@ rep("drawSpriteInto($('#lockerSprite'),myLook(),'down',0);",
     "b.setAttribute('aria-pressed',String(cur===v));b.addEventListener('click',()=>{L.body=v;if(v==='f')L.bd=false;persist();sfx('click');lockerScreen()});ob.appendChild(b)})}"
     "{const p3=G3D.preview(myLook());$('#locker3d').hidden=!p3;$('#lockerSprite').hidden=!!p3}")
 rep('function myLook(){const L=SAVE.look;return {skin:L.skin,style:L.style,hairc:L.hairc,scrub:L.scrub,gl:!!L.gl,bd:!!L.bd,cap:!!L.cap}}',
-    "function myLook(){const L=SAVE.look;return {skin:L.skin,style:L.style,hairc:L.hairc,scrub:L.scrub,gl:!!L.gl,bd:!!L.bd,cap:!!L.cap,body:L.body||(L.bd?'m':'f')}}")
+    "function myLook(){const L=SAVE.look;return {skin:L.skin,style:L.style,hairc:L.hairc,scrub:L.scrub,gl:!!L.gl,bd:!!L.bd,cap:!!L.cap,body:L.body||(L.bd?'m':'f'),shoes:L.shoes||'',steth:L.steth!==false}}")
+# Locker: shoe colors and a stethoscope switch (both show on the 3D character)
+rep("const STYLES=['short','long','bun','curly','buzz','pony'];",
+    "const STYLES=['short','long','bun','curly','buzz','pony'];\nconst SHOES=['#f4f6fa','#2a2c36','#8a93a6','#1e355a','#ff8fc4','#7b5cd6','#18a6c4','#e05a5a'];")
+rep('<div class="styles" id="optExtra"></div>',
+    '<div class="styles" id="optExtra"></div>\n          <h3 style="margin-top:12px" data-t="o_shoes">Shoes</h3><div class="swatches" id="optShoes"></div>')
+rep("const ex=$('#optExtra');ex.innerHTML='';[['gl','x_gl'],['bd','x_bd'],['cap','x_cap']].forEach(([k,t])=>{",
+    "if(L.steth===undefined)L.steth=true;const ex=$('#optExtra');ex.innerHTML='';[['gl','x_gl'],['steth','x_steth'],['bd','x_bd'],['cap','x_cap']].forEach(([k,t])=>{")
+rep("  sw($('#optHairc'),HAIRC,L.hairc,i=>{L.hairc=i},i=>tr('o_hair')+' '+(i+1));",
+    "  sw($('#optShoes'),SHOES,Math.max(0,SHOES.indexOf(L.shoes||SHOES[0])),i=>{L.shoes=SHOES[i]},i=>tr('o_shoes')+' '+(i+1));\n  sw($('#optHairc'),HAIRC,L.hairc,i=>{L.hairc=i},i=>tr('o_hair')+' '+(i+1));")
 rep("@keyframes fdin{from{opacity:0}to{opacity:1}}", "@keyframes fdin{from{opacity:0}to{opacity:1}}\n.preview #locker3d{width:150px;height:190px;image-rendering:auto}")
 rep("fl_med:'MED ROOM',", "fl_med:'MED ROOM',o_body:'Character',b_f:'Female',b_m:'Male',")
 rep("fl_med:'MEDICAMENTOS',", "fl_med:'MEDICAMENTOS',o_body:'Personaje',b_f:'Mujer',b_m:'Hombre',")
-rep("x_cap:'Scrub cap'", "x_cap:'Nurse cap'")
-rep("x_cap:'Gorro quir\\u00fargico'", "x_cap:'Gorro de enfermera'")
+rep("x_cap:'Scrub cap'", "x_cap:'Nurse cap',x_steth:'Stethoscope',o_shoes:'Shoes'")
+rep("x_cap:'Gorro quir\\u00fargico'", "x_cap:'Gorro de enfermera',x_steth:'Estetoscopio',o_shoes:'Zapatos'")
 if mode == 'artifact':
     s = re.sub(r'<!DOCTYPE html>\s*', '', s, flags=re.I)
     s = re.sub(r'</?html[^>]*>\s*', '', s); s = re.sub(r'</?head>\s*', '', s); s = re.sub(r'</?body[^>]*>\s*', '', s)

@@ -1,5 +1,6 @@
 """Render a character GLB in a row of poses: python3 view.py THREE_PACKAGE_DIR model.glb out.png ['[["idle",1,0],["walk",.5,1.57],["bones",0,0]]']
-   Each shot is [clip or "bones", time, turn, close-up?, {scrub, skin, hair}]."""
+   Each shot is [clip or "bones", time, turn, close-up?, look] where look is what dressNurse takes:
+   {top, pants, skin, hair, shoes} colors, {cap, glasses, steth, cross} switches and style (short|long|bun|curly|buzz|pony)."""
 import sys, os, base64
 from playwright.sync_api import sync_playwright
 import json
@@ -37,7 +38,7 @@ with sync_playwright() as p:
         else { const mixer = new T.AnimationMixer(m); const a = mixer.clipAction(g2.animations.find(c => c.name === name)); a.play(); mixer.setTime(t); }
         const zoom = SHOTS[i][3] || 0, tint = SHOTS[i][4];
         if (name !== 'bones' && typeof nurseMaterial === 'function') { let meta = null; m.traverse(o => { if (o.userData && o.userData.mean) meta = o.userData; });
-          m.traverse(o => { if (o.isSkinnedMesh) { o.material = nurseMaterial(o.material, meta.mean); tintNurse(o.material, tint || {}); } }); }
+          let mm = null; m.traverse(o => { if (o.isSkinnedMesh) { mm = o.material = nurseMaterial(o.material, meta.mean); } }); dressNurse(m, mm, Object.assign({ cap: true }, tint || {})); }
         const cam = new T.PerspectiveCamera(30, W / 500, 1, 1000); if (zoom) { cam.position.set(0, 64, 110); cam.lookAt(0, 64, 0); cam.fov = 26; cam.aspect = W / 500; cam.updateProjectionMatrix(); } else { cam.position.set(0, 55, 260); cam.lookAt(0, 50, 0); }
         r.setViewport(i * W, 0, W, 500); r.setScissor(i * W, 0, W, 500); r.render(sc, cam);
       }

@@ -1,6 +1,6 @@
 // game-ready pack: smaller textures, drop tracks for bones nothing is skinned to (fingers, end bones), trim keys, quantize
 import { NodeIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS, KHRMeshQuantization } from '@gltf-transform/extensions';
 import { resample, prune, dedup, quantize, textureCompress } from '@gltf-transform/functions';
 import sharp from 'sharp';
 const [src, out, q] = process.argv.slice(2);
@@ -24,9 +24,11 @@ console.log('joints used', used.size, 'channels dropped', dropped);
 const steps = [
   textureCompress({ encoder: sharp, targetFormat: 'jpeg', resize: [1024, 1024], quality: 86, slots: /^baseColorTexture$/ }),
   textureCompress({ encoder: sharp, targetFormat: 'jpeg', resize: [512, 512], quality: 90, slots: /^normalTexture$/ }),
-  resample({ tolerance: 2e-4 }), prune(), dedup()];
-if (q === 'q') steps.push(quantize({ quantizePosition: 14, quantizeNormal: 10, quantizeTexcoord: 12, quantizeColor: 8, quantizeWeight: 8 }));
+  resample({ tolerance: 2e-4 }), prune({ keepAttributes: true }), dedup()];   // keep COLOR_1 (Locker classes)
+// positions stay float (the game places hair pieces and accessories in the model's own centimeters); the rest is quantized
+if (q === 'q') steps.push(quantize({ pattern: /^(NORMAL|TEXCOORD|COLOR|JOINTS|WEIGHTS)/, quantizeNormal: 10, quantizeTexcoord: 12, quantizeColor: 8, quantizeWeight: 8 }));
 await doc.transform(...steps);
+if (q === 'q') doc.createExtension(KHRMeshQuantization).setRequired(true);   // quantized normals, colors, weights
 await io.write(out, doc);
 for (const a of root.listAnimations()) console.log('anim', a.getName(), a.listChannels().length, 'channels');
 for (const t of root.listTextures()) console.log('texture', t.getMimeType(), t.getSize(), t.getImage().byteLength);
