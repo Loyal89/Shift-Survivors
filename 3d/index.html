@@ -8388,9 +8388,17 @@ function loadNurse(){if(nurseState||!T.GLTFLoader||!T.SkeletonUtils)return;nurse
       if(!mesh||!meta||!idle||!walk){nurseState=3;console.warn('nurse model: missing parts');return}
       NURSE={scene:g.scene,idle,walk,h:meta.height||97.9,speed:meta.walkSpeed||55,mean:meta.mean};nurseState=2;
       const me=people.get('me');if(me)me.lk='';if(pv&&pv.L){pv.lk='';preview(pv.L)}};
-    // a .json holds the same .glb as base64, for hosts that only serve web data types
+    // a .json holds the same .glb as base64, for hosts that only serve web data types; its pictures are decoded
+    // straight from memory (createImageBitmap), so a page policy that blocks blob: addresses can't stop them
     if(/\.json$/.test(NURSE_URL))fetch(NURSE_URL).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{const b=atob(j.glb),u=new Uint8Array(b.length);
-      for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);new T.GLTFLoader().parse(u.buffer,'',done,fail)}).catch(fail);
+      for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);const ld=new T.GLTFLoader();
+      if(typeof createImageBitmap==='function')ld.register(parser=>{const orig=parser.loadImageSource.bind(parser);
+        parser.loadImageSource=function(si,l){const d=parser.json.images[si];if(d.bufferView===undefined)return orig(si,l);
+          if(!parser.sourceCache[si])parser.sourceCache[si]=parser.getDependency('bufferView',d.bufferView).then(buf=>{const bl=new Blob([buf],{type:d.mimeType});
+            return createImageBitmap(bl,{premultiplyAlpha:'none',colorSpaceConversion:'none'}).catch(()=>createImageBitmap(bl))}).then(bmp=>{const t=new T.Texture(bmp);t.needsUpdate=true;t.userData.mimeType=d.mimeType;return t});
+          return parser.sourceCache[si].then(t=>t.clone())};
+        return {name:'SS_images_in_memory'}});
+      ld.parse(u.buffer,'',done,fail)}).catch(fail);
     else new T.GLTFLoader().load(NURSE_URL,done,undefined,fail)}catch(e){fail(e)}}
 function nurseColors(L){return {scrub:L.scrubC||scrubById(L.scrub).c,skin:SKINS[L.skin]||SKINS[1],hair:HAIRC[L.hairc]||HAIRC[1]}}
 const NURSE_H=.86;   // the player's height in world units, like the code-built nurse
