@@ -14,24 +14,26 @@ def rep(a, b, n=1):
     c = s.count(a); assert c == n, (c, a[:100]); s = s.replace(a, b)
 
 # 1) the staff restrooms and the staff lounge become walkable, with their furniture blocked
-rep("const GS=2,GW=Math.ceil(WW/GS),GH=Math.ceil(WH/GS),WGRID=new Uint8Array(GW*GH);",
-    "// breaks: the staff restrooms (top and bottom) and the staff lounge open onto the halls\n"
-    "WALK.push({x:806,y:306,w:188,h:88},{x:870,y:288,w:52,h:24},{x:806,y:606,w:188,h:88},{x:870,y:688,w:52,h:26},{x:806,y:406,w:188,h:188},{x:988,y:470,w:20,h:60});\n"
-    "const GS=2,GW=Math.ceil(WW/GS),GH=Math.ceil(WH/GS),WGRID=new Uint8Array(GW*GH);")
+GS_ANCHOR = "const GS=2,GW=Math.ceil(WW/GS),GH=Math.ceil(WH/GS)"   # (WGRID is const in the fair source, let in the source with floors)
+rep(GS_ANCHOR,
+    "// breaks: the staff restrooms (top and bottom) and the staff lounge open onto the halls (mirrored with the core when the map is)\n"
+    "const NM=(typeof MIR!=='undefined'&&MIR)?(x,w)=>WW-x-(w||0):x=>x;\n"
+    "WALK.push(...[[806,306,188,88],[870,288,52,24],[806,606,188,88],[870,688,52,26],[806,406,188,188],[988,470,20,60]].map(([x,y,w,h])=>({x:NM(x,w),y,w,h})));\n"
+    + GS_ANCHOR)
 rep("  for(let y=y0;y<=y1;y++)WGRID.fill(1,y*GW+x0,y*GW+x1+1)}\n",
     "  for(let y=y0;y<=y1;y++)WGRID.fill(1,y*GW+x0,y*GW+x1+1)}\n"
-    "for(const [x,y,w,h] of [[950,316,26,30],[818,316,34,22],[950,656,26,30],[818,662,34,22],[812,412,112,22],[946,410,40,52],[836,452,92,44],[814,464,18,18],[934,464,18,18],[826,556,124,30]])blockRect(x,y,w,h);\n")
+    "for(const [x,y,w,h] of [[950,316,26,30],[818,316,34,22],[950,656,26,30],[818,662,34,22],[812,412,112,22],[946,410,40,52],[836,452,92,44],[814,464,18,18],[934,464,18,18],[826,556,124,30]])blockRect(NM(x,w),y,w,h);\n")
 
 # 1b) the 2D wall faces block the strip below each wall; keep the break-room doorways open through them
 rep("  raiseWalls(g);ARCH=", "  raiseWalls(g);if(NEEDS)openBreakDoors();ARCH=")
-rep("function blockRect(x,y,w,h){", "function openBreakDoors(){for(const [x,y,w,h] of [[872,286,48,48],[872,684,48,52],[986,472,24,56]])for(let j=y>>1;j<=(y+h)>>1;j++)for(let i=x>>1;i<=(x+w)>>1;i++)WGRID[j*GW+i]=1}\nfunction blockRect(x,y,w,h){")
+rep("function blockRect(x,y,w,h){", "function openBreakDoors(){for(const [x0,y,w,h] of [[872,286,48,48],[872,684,48,52],[986,472,24,56]]){const x=NM(x0,w);for(let j=y>>1;j<=(y+h)>>1;j++)for(let i=x>>1;i<=(x+w)>>1;i++)WGRID[j*GW+i]=1}}\nfunction blockRect(x,y,w,h){")
 # 2) break spots and task types
 rep("reach:95,tasks:[],pt:{id:-1},state:'occ',active:true};",
     "reach:95,tasks:[],pt:{id:-1},state:'occ',active:true};\n"
     "/* your own breaks: helpers can't take these for you */\n"
     "const NEEDS=true;\n"
-    "const SELF={wc:{num:'',side:'self',self:'wc',x:800,y:300,w:200,h:400,door:{x:906,y:338},bed:{x:922,y:356},spots:[{x:922,y:356,door:{x:906,y:338}},{x:922,y:646,door:{x:906,y:664}}],tasks:[],pt:{id:-2},state:'occ',active:true,reach:0},\n"
-    "  meal:{num:'',side:'self',self:'meal',x:800,y:400,w:200,h:200,door:{x:950,y:506},bed:{x:900,y:524},spots:[{x:900,y:524,door:{x:950,y:506}}],tasks:[],pt:{id:-3},state:'occ',active:true,reach:0}};")
+    "const SELF={wc:{num:'',side:'self',self:'wc',x:NM(800,200),y:300,w:200,h:400,door:{x:NM(906),y:338},bed:{x:NM(922),y:356},spots:[{x:NM(922),y:356,door:{x:NM(906),y:338}},{x:NM(922),y:646,door:{x:NM(906),y:664}}],tasks:[],pt:{id:-2},state:'occ',active:true,reach:0},\n"
+    "  meal:{num:'',side:'self',self:'meal',x:NM(800,200),y:400,w:200,h:200,door:{x:NM(950),y:506},bed:{x:NM(900),y:524},spots:[{x:NM(900),y:524,door:{x:NM(950),y:506}}],tasks:[],pt:{id:-3},state:'occ',active:true,reach:0}};")
 rep("if(CODEBLUE){TT.blue={work:9,due:22,xp:30,drain:1.8,exp:30,hit:22,cna:0,icon:'blue'};URG.blue=3}",   # (the Steam edition has no Code Blue)
     "if(CODEBLUE){TT.blue={work:9,due:22,xp:30,drain:1.8,exp:30,hit:22,cna:0,icon:'blue'};URG.blue=3}\n"
     "TT.wc={work:3,due:34,xp:2,drain:0,exp:0,hit:0,cna:0,self:1,icon:'wc'};TT.meal={work:6,due:48,xp:4,drain:0,exp:0,hit:0,cna:0,self:1,icon:'snack'};\n"
@@ -44,8 +46,8 @@ rep("if(CODEBLUE)sched(rnd(420,640),()=>urgent('blue'));",
     "  if(NEEDS){const n=2+((Math.random()*3)|0),a=40,b=680,seg=(b-a)/n;for(let i=0;i<n;i++)sched(a+seg*i+rnd(seg*.15,seg*.85),()=>needTask('wc'));sched(rnd(270,420),()=>needTask('meal'))}")
 
 # 4) working: break spots count only when you are inside; pending breaks slow your patient work; codes alarm until you arrive
-rep("for(const k of G.tasks){const d=hyp(P.x-k.room.bed.x,P.y-k.room.bed.y);if(d>R+(k.room.reach||0))continue;const s=prio(k)-d*.002;if(s>bs){bs=s;best=k}}",
-    "for(const k of G.tasks){const sp=k.room.spots,d=sp?Math.min(...sp.map(q=>hyp(P.x-q.x,P.y-q.y))):hyp(P.x-k.room.bed.x,P.y-k.room.bed.y);if(d>(sp?64:R+(k.room.reach||0)))continue;const s=prio(k)+(sp?5:0)-d*.002;if(s>bs){bs=s;best=k}}")
+rep("const d=hyp(P.x-k.room.bed.x,P.y-k.room.bed.y);if(d>R+(k.room.reach||0))continue;const s=prio(k)-d*.002;if(s>bs){bs=s;best=k}}",
+    "const sp=k.room.spots,d=sp?Math.min(...sp.map(q=>hyp(P.x-q.x,P.y-q.y))):hyp(P.x-k.room.bed.x,P.y-k.room.bed.y);if(d>(sp?64:R+(k.room.reach||0)))continue;const s=prio(k)+(sp?5:0)-d*.002;if(s>bs){bs=s;best=k}}")
 rep("P.focus=best;if(best){best.done+=dt*rate('you',best);if(best.done>=best.work)completeTask(best)}",
     "P.focus=best;if(best){best.done+=dt*rate('you',best)*needMul(best);if(best.done>=best.work)completeTask(best)}\n  codeAlerts(dt);")
 rep("function prio(k){return (URG[k.type]||0)+k.age/k.due+(k.over?1:0)}",
@@ -58,10 +60,10 @@ rep("function prio(k){return (URG[k.type]||0)+k.age/k.due+(k.over?1:0)}",
     "/* codes need you: until you get there the alarm keeps coming back, stronger and more often */\n"
     "function codeAlerts(dt){const G=RUN;let waiting=false;\n"
     "  for(const k of G.tasks){const cd=CODE[k.type];if(!cd)continue;\n"
-    "    if(P.focus===k){if(!k.here){k.here=true;floater(P.x,P.y-56,tr('f_here'),cd.hex)}k.wait=0;continue}\n"
+    "    if(P.focus===k){if(!k.here){k.here=true;floater(P.x,P.y-56,tr('f_here'),cd.hex)}k.wait=0;continue}if(typeof mine==='function'&&!mine(k)&&k.claim)continue;\n"
     "    waiting=true;k.here=false;k.wait=(k.wait||0)+dt;k.nag=(k.nag==null?2.5:k.nag)-dt;\n"
     "    if(k.nag<=0){const lvl=Math.min(1,k.wait/24);k.nag=3.2-2.2*lvl;G.flash=1.5;G.flashC=cd.rgb;G.flashAmp=1+1.6*lvl;sfx(lvl>.5?'siren':'alarm');buzz(lvl>.5?[120,60,120]:80);\n"
-    "      ring(k.room.bed.x,k.room.bed.y,cd.hex,120+80*lvl);k.nags=(k.nags||0)+1;if(k.nags%2===0)toast(tr('t_codewait',{k:tr('k_'+k.type),r:k.room.num}),cd.toast)}}\n"
+    "      ring(k.room.bed.x,k.room.bed.y,cd.hex,120+80*lvl,k.room.fl);k.nags=(k.nags||0)+1;if(k.nags%2===0)toast(tr('t_codewait',{k:tr('k_'+k.type),r:k.room.num}),cd.toast)}}\n"
     "  if(!waiting)G.flashAmp=1}\n"
     "function needIcons(x,y,ts){if(!NEEDS||!RUN)return;let i=0;for(const t of ['wc','meal']){const k=SELF[t].tasks[0];if(!k)continue;\n"
     "  ctx.globalAlpha=.6+.4*Math.sin(ts*(k.over?10:5));ctx.fillStyle='rgba(11,10,28,.85)';ctx.fillRect(x-17+i*18,y-8,16,16);ctx.drawImage(iconCanvas(TT[t].icon),x-16+i*18,y-7,14,14);i++}ctx.globalAlpha=1}")
@@ -73,7 +75,7 @@ rep("function needTask(type){", "function aimSelf(){for(const t in SELF){const r
 rep("if(k.claim&&k.claim!==h)continue;if(h.kind==='cna'&&!TT[k.type].cna)continue;",
     "if(k.claim&&k.claim!==h)continue;if(TT[k.type].self)continue;if(h.kind==='cna'&&!TT[k.type].cna)continue;")
 rep("if(hyp(h.x-k.room.door.x,h.y-k.room.door.y)<10){k.done+=dt*rate(h.kind,k);if(k.done>=k.work)completeTask(k)}",
-    "if(hyp(h.x-k.room.door.x,h.y-k.room.door.y)<10){if(!(URG[k.type]>=3)||P.focus===k){k.done+=dt*rate(h.kind,k);if(k.done>=k.work)completeTask(k)}}")
+    "if(hyp(h.x-k.room.door.x,h.y-k.room.door.y)<10){if(!(URG[k.type]>=3)||P.focus===k||(typeof mine==='function'&&!mine(k))){k.done+=dt*rate(h.kind,k);if(k.done>=k.work)completeTask(k)}}")
 rep("n.task.done+=dt*CREW_SOLO;if(n.task.done>=n.task.work)completeTask(n.task);return}", "return}")
 rep("function completeTask(k){const G=RUN,d=TT[k.type],onTime=!k.over,r=k.room;removeTask(k);",
     "function completeTask(k){const G=RUN,d=TT[k.type],onTime=!k.over,r=k.room;removeTask(k);if(d.self)selfDone(k);")

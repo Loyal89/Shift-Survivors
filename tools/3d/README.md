@@ -18,3 +18,5 @@ The page is one file and works offline with the code-built people; the textured 
 `3d/index.html` only sends old links to the main page.
 
 The same two steps also turn the Steam edition's page (St. Overtime Medical Center, 4 West) into the 3D web demo on loyal4studio.com/play/.
+In that edition the 3D view also shows the units that open above 4 West as you level up: one floor at a time, or zoomed out to the whole floor or every floor at once (stacked like stairs). `desktop` instead of `inline` also loads the models from a `models.js` beside the page, for the desktop app (a `file://` page can't fetch `.glb` files).
+The fair edition (this repo's `src/game.html`) has one unit and is unchanged by these.

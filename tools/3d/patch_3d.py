@@ -1,4 +1,6 @@
-"""Add the 3D view to a Shift Survivors build.  python3 patch_3d.py SRC OUT MODE   (MODE: inline | artifact)"""
+"""Add the 3D view to a Shift Survivors build.  python3 patch_3d.py SRC OUT MODE   (MODE: inline | artifact | desktop)
+inline: three.js inside the page (the models are nurse_f.glb and nurse_m.glb next to it); artifact: three.js from jsDelivr and the models as .json;
+desktop: like inline, plus models.js beside the page with the models in it (the desktop app's file:// page can't fetch .glb files)."""
 import sys, re, os
 src, out, mode = sys.argv[1], sys.argv[2], sys.argv[3]
 here = os.path.dirname(os.path.abspath(__file__))
@@ -8,13 +10,15 @@ LIBS = ['build/three.min.js', 'examples/js/shaders/CopyShader.js', 'examples/js/
         'examples/js/postprocessing/EffectComposer.js', 'examples/js/postprocessing/ShaderPass.js',
         'examples/js/postprocessing/RenderPass.js', 'examples/js/postprocessing/UnrealBloomPass.js',
         'examples/js/utils/BufferGeometryUtils.js', 'examples/js/loaders/GLTFLoader.js', 'examples/js/utils/SkeletonUtils.js']
-if mode == 'inline':
+if mode in ('inline', 'desktop'):
     libs = ''.join('<script>/* three.js r147 (MIT) ' + p + ' */\n' + open(os.path.join(here, 'package', p), encoding='utf-8').read().replace('</script', '<\\/script') + '\n</script>\n' for p in LIBS)
 else:
     libs = ''.join(f'<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/{p}"></script>\n' for p in LIBS)
 def rep(a, b):
     global s
     c = s.count(a); assert c == 1, (c, a[:90]); s = s.replace(a, b)
+if mode == 'desktop':
+    libs = '<script src="models.js"></script>\n' + libs
 rep("<script>\n(function(){\n'use strict';", libs + "<script>\n(function(){\n'use strict';")
 wire = """
 /* title screen: your 3D character beside the menu (falls back to the classic layout until the model is ready) */
